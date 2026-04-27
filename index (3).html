@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WFO Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet"/>
+
+  <style>
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: #0d1420;
+      color: #f5f0e8;
+      -webkit-font-smoothing: antialiased;
+    }
+    input, button, select { font-family: inherit; }
+    button { cursor: pointer; }
+
+    /* ── DESIGN TOKENS ── */
+    :root {
+      --navy:    #1a2340;
+      --ink:     #0d1420;
+      --cream:   #f5f0e8;
+      --gold:    #c9a84c;
+      --gold-l:  #e8c96a;
+      --maroon:  #7a1f2e;
+      --maroon-l:#9e2e42;
+      --green:   #1e6b4a;
+      --green-l: #2a8f63;
+      --muted:   #8898b0;
+      --border:  #2e3d5c;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; }
+
+    /* ── BACKGROUND ── */
+    .app-bg {
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 18% 0%,   rgba(201,168,76,.07)  0%, transparent 55%),
+        radial-gradient(ellipse at 82% 100%,  rgba(122,31,46,.09)   0%, transparent 55%),
+        var(--ink);
+    }
+
+    /* ══ AUTH ══════════════════════════════════════════════════ */
+    .auth-wrap {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 2rem;
+    }
+    .auth-card {
+      background: var(--navy);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 3rem 2.5rem;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.55);
+      animation: fadeUp .4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(18px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .auth-logo { text-align: center; margin-bottom: 2.5rem; }
+    .auth-logo h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem; color: var(--gold); letter-spacing: .05em;
+    }
+    .auth-logo p {
+      font-size: .7rem; letter-spacing: .22em;
+      text-transform: uppercase; color: var(--muted); margin-top: .4rem;
+    }
+    .auth-divider {
+      width: 40px; height: 1px;
+      background: var(--gold); margin: .8rem auto; opacity: .4;
+    }
+    .field { margin-bottom: 1.2rem; }
+    .field label {
+      display: block; font-size: .7rem;
+      letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: .45rem;
+    }
+    .field input {
+      width: 100%; padding: .75rem 1rem;
+      background: var(--ink); border: 1px solid var(--border);
+      color: var(--cream); font-size: .95rem;
+      border-radius: 1px; outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus { border-color: var(--gold); }
+
+    .btn-primary {
+      width: 100%; padding: .85rem;
+      background: var(--gold); color: var(--ink);
+      border: none; border-radius: 1px;
+      font-size: .78rem; font-weight: 600;
+      letter-spacing: .15em; text-transform: uppercase;
+      transition: background .2s; margin-top: .5rem;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--gold-l); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); width: 100%; padding: .75rem;
+      font-size: .78rem; letter-spacing: .12em;
+      text-transform: uppercase; border-radius: 1px;
+      transition: all .2s; margin-top: .6rem;
+    }
+    .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+    .auth-msg {
+      padding: .7rem 1rem; font-size: .85rem;
+      border-radius: 1px; margin-bottom: 1rem;
+    }
+    .auth-msg.err {
+      background: rgba(122,31,46,.22);
+      border: 1px solid var(--maroon); color: #e07080;
+    }
+    .auth-msg.ok {
+      background: rgba(30,107,74,.2);
+      border: 1px solid var(--green); color: #5ecf98;
+    }
+    .auth-switch {
+      text-align: center; margin-top: 1.5rem;
+      font-size: .85rem; color: var(--muted);
+    }
+    .auth-switch span {
+      color: var(--gold); cursor: pointer; text-decoration: underline;
+    }
+
+    /* ══ HEADER ════════════════════════════════════════════════ */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(26,35,64,.88);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem; color: var(--gold); letter-spacing: .04em;
+    }
+    .header-logo span { color: var(--cream); font-size: .78em; }
+    .header-right { display: flex; align-items: center; gap: 1.2rem; }
+    .header-user {
+      font-size: .78rem; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .btn-sm {
+      padding: .42rem .95rem;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-size: .72rem;
+      letter-spacing: .1em; text-transform: uppercase;
+      border-radius: 1px; transition: all .2s;
+    }
+    .btn-sm:hover       { border-color: var(--gold);     color: var(--gold); }
+    .btn-sm.danger:hover{ border-color: var(--maroon-l); color: var(--maroon-l); }
+
+    /* ══ MAIN ══════════════════════════════════════════════════ */
+
+    /* ── STATS ── */
+    .stats-bar {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 2rem; border-radius: 2px; overflow: hidden;
+    }
+    .stat { background: var(--navy); padding: 1.5rem 1.8rem; text-align: center; }
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.8rem; font-weight: 700; line-height: 1;
+    }
+    .stat-num.gold   { color: var(--gold); }
+    .stat-num.green  { color: var(--green-l); }
+    .stat-num.maroon { color: var(--maroon-l); }
+    .stat-label {
+      font-size: .68rem; letter-spacing: .16em;
+      text-transform: uppercase; color: var(--muted); margin-top: .4rem;
+    }
+
+    /* ── GOAL BAR ── */
+    .goal-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--navy); border: 1px solid var(--border);
+      padding: 1.1rem 1.5rem; margin-bottom: 2rem; border-radius: 2px;
+    }
+    .goal-bar-left {
+      font-size: .75rem; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .goal-bar-left strong { color: var(--gold); font-size: 1.05rem; }
+    .goal-controls { display: flex; align-items: center; gap: .5rem; }
+    .goal-input {
+      width: 62px; padding: .4rem .5rem;
+      background: var(--ink); border: 1px solid var(--border);
+      color: var(--cream); text-align: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem; border-radius: 1px; outline: none;
+    }
+    .goal-input:focus { border-color: var(--gold); }
+    .progress-wrap {
+      background: var(--ink); border-radius: 1px;
+      height: 3px; margin: .7rem 0 .3rem; width: 200px;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 1px;
+      background: linear-gradient(90deg, var(--green), var(--green-l));
+      transition: width .5s ease;
+    }
+
+    /* ── CALENDAR ── */
+    .cal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.4rem;
+    }
+    .cal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.55rem; color: var(--cream);
+    }
+    .cal-nav { display: flex; gap: .4rem; }
+    .cal-nav button {
+      padding: .35rem .85rem;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); font-size: 1.1rem; border-radius: 1px;
+      transition: all .2s;
+    }
+    .cal-nav button:hover { border-color: var(--gold); color: var(--gold); }
+
+    .cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+    }
+    .cal-dow {
+      text-align: center; font-size: .64rem;
+      letter-spacing: .15em; text-transform: uppercase;
+      color: var(--muted); padding: .5rem 0;
+    }
+    .cal-cell {
+      aspect-ratio: 1; display: flex;
+      align-items: center; justify-content: center;
+      font-size: .9rem; border-radius: 1px;
+      border: 1px solid transparent;
+      transition: all .14s; user-select: none;
+    }
+    .cal-cell.empty   { cursor: default; }
+    .cal-cell.future  { color: var(--cream); cursor: pointer; }
+    .cal-cell.future:hover { background: rgba(201,168,76,.07); border-color: var(--border); }
+    .cal-cell.today   { border-color: var(--gold); color: var(--gold); cursor: pointer; }
+    .cal-cell.today:hover { background: rgba(201,168,76,.07); }
+    .cal-cell.past    { color: var(--muted); opacity: .55; cursor: pointer; }
+
+    .cal-cell.planned {
+      background: var(--maroon); border-color: var(--maroon-l);
+      color: #fff; cursor: pointer;
+    }
+    .cal-cell.planned:hover { background: var(--maroon-l); }
+    .cal-cell.done {
+      background: var(--green); border-color: var(--green-l);
+      color: #fff; cursor: pointer;
+    }
+    .cal-cell.done:hover { background: var(--green-l); }
+    .cal-cell.today.planned,
+    .cal-cell.today.done { box-shadow: 0 0 0 2px var(--gold); }
+
+    /* ── LEGEND ── */
+    .legend {
+      display: flex; gap: 2rem; margin-top: 1.4rem;
+      justify-content: center; flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .72rem; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .legend-dot { width: 14px; height: 14px; border-radius: 1px; }
+    .legend-dot.none    { background: var(--navy); border: 1px solid var(--border); }
+    .legend-dot.planned { background: var(--maroon); }
+    .legend-dot.done    { background: var(--green); }
+
+    /* ── HOW-TO ── */
+    .howto {
+      margin-top: 2.5rem; background: var(--navy);
+      border: 1px solid var(--border); padding: 1.5rem 2rem; border-radius: 2px;
+    }
+    .howto h3 {
+      font-family: 'Playfair Display', serif;
+      color: var(--gold); font-size: 1rem; margin-bottom: .8rem;
+    }
+    .howto p { font-size: .84rem; color: var(--muted); line-height: 1.75; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.72); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center;
+      z-index: 200; padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--navy); border: 1px solid var(--border);
+      border-radius: 2px; padding: 2.5rem;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6);
+      animation: fadeUp .25s ease both;
+    }
+    .modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem; color: var(--gold); margin-bottom: 1.5rem;
+    }
+    .modal-actions { display: flex; gap: .75rem; margin-top: 1.5rem; }
+    .modal-actions button { flex: 1; margin-top: 0; }
+    .modal-msg { font-size: .83rem; margin-top: .6rem; }
+    .modal-msg.ok  { color: var(--green-l); }
+    .modal-msg.err { color: #e07080; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      background: var(--navy); border: 1px solid var(--border);
+      color: var(--cream); padding: .75rem 1.5rem;
+      border-radius: 2px; font-size: .84rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      opacity: 0; transition: opacity .3s; pointer-events: none;
+      white-space: nowrap; z-index: 300;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── LOADING ── */
+    .loading-screen {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh;
+    }
+    .loading-screen p {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem; color: var(--gold); letter-spacing: .12em;
+    }
+
+    /* ── APP LAYOUT WITH SIDEBAR ── */
+    .app-layout {
+      display: flex; min-height: calc(100vh - 60px);
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--navy);
+      border-right: 1px solid var(--border);
+      padding: 1.8rem 0;
+      position: sticky; top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      font-family: 'Playfair Display', serif;
+      font-size: .95rem; color: var(--gold);
+      letter-spacing: .06em;
+      padding: 0 1.4rem .9rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: .8rem;
+    }
+    .peer-item {
+      padding: .65rem 1.4rem;
+      cursor: pointer;
+      transition: background .15s;
+      border-left: 2px solid transparent;
+    }
+    .peer-item:hover { background: rgba(201,168,76,.06); }
+    .peer-item.active {
+      background: rgba(201,168,76,.1);
+      border-left-color: var(--gold);
+    }
+    .peer-name {
+      font-size: .83rem; color: var(--cream);
+      font-weight: 600; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: .5rem;
+    }
+    .peer-item.you .peer-name { color: var(--gold); }
+    .peer-progress-wrap {
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      height: 5px; overflow: hidden;
+    }
+    .peer-progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--green-l));
+      transition: width .6s ease;
+    }
+    .peer-item.you .peer-progress-fill {
+      background: linear-gradient(90deg, #b8860b, var(--gold-l));
+    }
+
+    /* ── MAIN CONTENT AREA ── */
+    .main-content { flex: 1; min-width: 0; }
+    .main { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+
+    /* ── VIEW BANNER (when watching a peer) ── */
+    .view-banner {
+      display: none;
+      background: rgba(201,168,76,.09);
+      border: 1px solid rgba(201,168,76,.25);
+      border-radius: 2px;
+      padding: .75rem 1.2rem;
+      margin-bottom: 1.5rem;
+      font-size: .82rem;
+      color: var(--gold);
+      letter-spacing: .06em;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .view-banner.active { display: flex; }
+    .view-banner button {
+      background: transparent;
+      border: 1px solid rgba(201,168,76,.4);
+      color: var(--gold);
+      padding: .3rem .85rem;
+      font-size: .72rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-radius: 1px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s;
+    }
+    .view-banner button:hover {
+      background: rgba(201,168,76,.15);
+    }
+
+    /* ── FORGOT PASSWORD LINK ── */
+    .forgot-link {
+      text-align: right; margin-top: -.5rem; margin-bottom: 1rem;
+      font-size: .8rem;
+    }
+    .forgot-link span {
+      color: var(--muted); cursor: pointer;
+      transition: color .2s;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .forgot-link span:hover { color: var(--gold); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 760px) {
+      .app-layout { flex-direction: column; }
+      .sidebar {
+        width: 100%; height: auto;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 0;
+        display: flex; flex-direction: column;
+      }
+      .sidebar-title { padding-bottom: .7rem; }
+      .sidebar-peers { display: flex; flex-wrap: nowrap; overflow-x: auto; padding: 0 .8rem; gap: .4rem; }
+      .peer-item { padding: .5rem .9rem; border-left: none; border-bottom: 2px solid transparent; min-width: 120px; border-radius: 4px; }
+      .peer-item.active { border-left-color: transparent; border-bottom-color: var(--gold); background: rgba(201,168,76,.1); }
+    }
+    @media (max-width: 600px) {
+      .header { padding: 1rem; }
+      .header-user { display: none; }
+      .main { padding: 1.5rem .75rem 4rem; }
+      .stat { padding: 1rem .5rem; }
+      .stat-num { font-size: 2rem; }
+      .goal-bar { flex-direction: column; gap: 1rem; align-items: flex-start; }
+      .progress-wrap { width: 100%; }
+      .cal-cell { font-size: .75rem; }
+      .legend { gap: 1rem; }
+      .howto { padding: 1.2rem; }
+      .auth-card { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOADING ══ -->
+<div id="screen-loading" class="screen active">
+  <div class="loading-screen"><p>Loading…</p></div>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div id="screen-login" class="screen app-bg">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>WFO Tracker</h1>
+        <div class="auth-divider"></div>
+        <p>Work · Presence · Balance</p>
+      </div>
+      <div id="login-msg" class="auth-msg" style="display:none"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@company.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <div class="forgot-link">
+        <span onclick="showScreen('forgot')">Forgot password?</span>
+      </div>
+      <button class="btn-primary" id="login-btn">Sign In</button>
+      <div class="auth-switch">
+        New here? <span onclick="showScreen('register')">Create an account</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REGISTER ══ -->
+<div id="screen-register" class="screen app-bg">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>WFO Tracker</h1>
+        <div class="auth-divider"></div>
+        <p>Create Your Account</p>
+      </div>
+      <div id="reg-msg" class="auth-msg" style="display:none"></div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="reg-username" placeholder="Your display name"/>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@company.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password <span style="text-transform:none;letter-spacing:0;font-size:.85em">(min. 6 characters)</span></label>
+        <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <button class="btn-primary" id="reg-btn">Create Account</button>
+      <div class="auth-switch">
+        Already have an account? <span onclick="showScreen('login')">Sign in</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FORGOT PASSWORD ══ -->
+<div id="screen-forgot" class="screen app-bg">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>WFO Tracker</h1>
+        <div class="auth-divider"></div>
+        <p>Reset Your Password</p>
+      </div>
+      <div id="forgot-msg" class="auth-msg" style="display:none"></div>
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="forgot-email" placeholder="you@company.com" autocomplete="email"/>
+      </div>
+      <button class="btn-primary" id="forgot-btn">Send Reset Email</button>
+      <div class="auth-switch">
+        Remembered it? <span onclick="showScreen('login')">Back to sign in</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="screen-app" class="screen app-bg">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-logo">WFO <span>Tracker</span></div>
+    <div class="header-right">
+      <span class="header-user" id="header-username"></span>
+      <button class="btn-sm" onclick="openSettings()">Settings</button>
+      <button class="btn-sm danger" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-title">12 Days a Slave</div>
+      <div class="sidebar-peers" id="sidebar-peers">
+        <!-- populated by JS -->
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+  <div class="main">
+
+    <!-- VIEW BANNER -->
+    <div class="view-banner" id="view-banner">
+      <span id="view-banner-text">Viewing <strong></strong>'s calendar — read only</span>
+      <button onclick="returnToOwnCalendar()">← Back to my calendar</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-num gold"  id="stat-goal">0</div>
+        <div class="stat-label">Monthly Goal</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num green"  id="stat-done">0</div>
+        <div class="stat-label">Days Done</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num maroon" id="stat-pending">0</div>
+        <div class="stat-label">Days Pending</div>
+      </div>
+    </div>
+
+    <!-- GOAL BAR -->
+    <div class="goal-bar">
+      <div class="goal-bar-left">
+        Monthly Target &nbsp;·&nbsp; <strong id="goal-display">0</strong> days
+        <div class="progress-wrap">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <span style="font-size:.68rem;display:block;margin-top:.1rem" id="pct-label">0% complete this month</span>
+        <span style="font-size:.75rem;display:block;margin-top:.5rem;color:var(--gold);font-style:italic" id="nudge-msg"></span>
+      </div>
+      <div class="goal-controls" id="goal-controls">
+        <button class="btn-sm" onclick="startEditGoal()">Edit Goal</button>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="cal-header">
+      <div class="cal-title" id="cal-title"></div>
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <button onclick="changeMonth(+1)">›</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot none"></div>Not Selected</div>
+      <div class="legend-item"><div class="legend-dot planned"></div>Planned WFO</div>
+      <div class="legend-item"><div class="legend-dot done"></div>Attended</div>
+    </div>
+
+    <!-- HOW TO -->
+    <div class="howto">
+      <h3>How to Use</h3>
+      <p>
+        <strong style="color:#f5f0e8">Click once</strong> on a date to mark it as a planned WFO day (maroon).
+        <strong style="color:#f5f0e8">Click again</strong> to confirm you attended that day (green).
+        <strong style="color:#f5f0e8">Click a third time</strong> to clear it.
+        Update your monthly goal anytime using the Edit Goal button.
+      </p>
+    </div>
+  </div><!-- /.main -->
+  </div><!-- /.main-content -->
+  </div><!-- /.app-layout -->
+</div><!-- /#screen-app -->
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Account Settings</h2>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="s-username"/>
+    </div>
+    <div class="field">
+      <label>Email Address</label>
+      <input type="email" id="s-email"/>
+    </div>
+    <div class="field">
+      <label>New Password <span style="text-transform:none;letter-spacing:0">(leave blank to keep)</span></label>
+      <input type="password" id="s-password" placeholder="••••••••"/>
+    </div>
+    <p class="modal-msg" id="settings-msg"></p>
+    <div class="modal-actions">
+      <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()">Save Changes</button>
+      <button class="btn-ghost"   onclick="closeSettings()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+
+<!-- ══ FIREBASE SDK ══ -->
+<script type="module">
+// ─────────────────────────────────────────────────────────────────────
+//  🔴  STEP 1: Replace these values with YOUR Firebase config.
+//  Find them at: Firebase Console → Project Settings → Your Apps
+// ─────────────────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyBQ_jsahBIcT97acTsBOY9ZNfgnXmXcLoA",
+  authDomain:        "wfo-tracker-e8e6d.firebaseapp.com",
+  projectId:         "wfo-tracker-e8e6d",
+  storageBucket:     "wfo-tracker-e8e6d.firebasestorage.app",
+  messagingSenderId: "639734883785",
+  appId:             "1:639734883785:web:a4e1155d1cbf864d9ff418",
+};
+// ─────────────────────────────────────────────────────────────────────
+
+import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword,
+         signInWithEmailAndPassword, onAuthStateChanged,
+         signOut, updateEmail, updatePassword,
+         sendPasswordResetEmail }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc,
+         setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── INIT ──────────────────────────────────────────────────────────────
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let currentUser    = null;
+let userProfile    = { username: "", wfoGoal: 12, monthGoals: {} };
+let dayData        = {};          // { "YYYY-MM-DD": "planned" | "done" }
+const today        = new Date();
+let viewYear       = today.getFullYear();
+let viewMonth      = today.getMonth();   // 0-based
+
+// peer-viewing state
+let viewingPeer    = null;        // { uid, username, dayData, wfoGoal }
+let allPeers       = [];          // [{ uid, username, wfoGoal, doneCount }]
+
+// ── GOAL HELPERS ──────────────────────────────────────────────────────
+// Returns goal for currently viewed month, falling back to legacy wfoGoal
+function currentMonthGoal() {
+  const key = monthPrefix();
+  const goals = userProfile.monthGoals || {};
+  return (goals[key] !== undefined) ? goals[key] : (userProfile.wfoGoal || 0);
+}
+
+const MONTHS = ["January","February","March","April","May","June","July",
+                "August","September","October","November","December"];
+const DOW    = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+// ── SCREEN HELPER ────────────────────────────────────────────────────
+window.showScreen = function(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+};
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+window._toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ── AUTH STATE ────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    await loadProfile();
+    await loadDays();
+    await loadAllPeers();
+    document.getElementById('header-username').textContent = userProfile.username;
+    renderAll();
+    renderSidebar();
+    showScreen('app');
+  } else {
+    currentUser = null;
+    showScreen('login');
+  }
+});
+
+// ── FIRESTORE HELPERS ─────────────────────────────────────────────────
+async function loadProfile() {
+  const snap = await getDoc(doc(db, "users", currentUser.uid));
+  const data = snap.exists() ? snap.data() : { username: "User", wfoGoal: 12 };
+  // ensure monthGoals always exists in memory even if not yet in Firestore
+  userProfile = { monthGoals: {}, ...data };
+}
+
+async function loadDays() {
+  const snap = await getDoc(doc(db, "wfo", currentUser.uid));
+  dayData = snap.exists() ? snap.data() : {};
+}
+
+async function loadAllPeers() {
+  try {
+    const usersSnap = await getDocs(collection(db, "users"));
+    const peers = [];
+    for (const userDoc of usersSnap.docs) {
+      if (userDoc.id === currentUser.uid) continue;
+      const profile = userDoc.data();
+      if (!profile.username) continue;
+      // load their wfo days to count done this month
+      let doneCount = 0;
+      try {
+        const wfoSnap = await getDoc(doc(db, "wfo", userDoc.id));
+        if (wfoSnap.exists()) {
+          const prefix = viewYear + '-' + String(viewMonth + 1).padStart(2,'0');
+          const data = wfoSnap.data();
+          doneCount = Object.entries(data).filter(([k,v]) => k.startsWith(prefix) && v === 'done').length;
+        }
+      } catch(_) {}
+      peers.push({
+        uid: userDoc.id,
+        username: profile.username,
+        wfoGoal: profile.wfoGoal || 12,
+        doneCount
+      });
+    }
+    allPeers = peers;
+  } catch(e) {
+    allPeers = [];
+  }
+}
+
+async function persistDays() {
+  await setDoc(doc(db, "wfo", currentUser.uid), dayData);
+}
+
+async function persistProfile(updates) {
+  try {
+    await updateDoc(doc(db, "users", currentUser.uid), updates);
+  } catch {
+    await setDoc(doc(db, "users", currentUser.uid), updates, { merge: true });
+  }
+  userProfile = { ...userProfile, ...updates };
+}
+
+// ── REGISTER ──────────────────────────────────────────────────────────
+document.getElementById('reg-btn').addEventListener('click', async () => {
+  const username = document.getElementById('reg-username').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const msgEl    = document.getElementById('reg-msg');
+
+  if (!username) { showMsg(msgEl, 'Please enter a username.', 'err'); return; }
+  if (!email)    { showMsg(msgEl, 'Please enter your email.', 'err'); return; }
+  if (password.length < 6) { showMsg(msgEl, 'Password must be at least 6 characters.', 'err'); return; }
+
+  setLoading('reg-btn', true);
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await setDoc(doc(db, "users", cred.user.uid), { username, email, wfoGoal: 12 });
+    // onAuthStateChanged handles the rest
+  } catch(e) {
+    showMsg(msgEl, friendlyError(e.code), 'err');
+    setLoading('reg-btn', false);
+  }
+});
+
+// ── FORGOT PASSWORD ───────────────────────────────────────────────────
+document.getElementById('forgot-btn').addEventListener('click', async () => {
+  const email = document.getElementById('forgot-email').value.trim();
+  const msgEl = document.getElementById('forgot-msg');
+
+  if (!email) { showMsg(msgEl, 'Please enter your email address.', 'err'); return; }
+
+  setLoading('forgot-btn', true);
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showMsg(msgEl, 'Reset email sent! Check your inbox.', 'ok');
+    document.getElementById('forgot-email').value = '';
+  } catch(e) {
+    showMsg(msgEl, friendlyError(e.code) || e.message, 'err');
+  } finally {
+    setLoading('forgot-btn', false);
+  }
+});
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const msgEl    = document.getElementById('login-msg');
+
+  setLoading('login-btn', true);
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged handles the rest
+  } catch(e) {
+    showMsg(msgEl, friendlyError(e.code), 'err');
+    setLoading('login-btn', false);
+  }
+});
+
+// Enter key on login / register / forgot
+['login-email','login-password'].forEach(id =>
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-btn').click(); }));
+['reg-username','reg-email','reg-password'].forEach(id =>
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('reg-btn').click(); }));
+document.getElementById('forgot-email').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('forgot-btn').click(); });
+
+// ── SIGN OUT ──────────────────────────────────────────────────────────
+window.doSignOut = async function() {
+  await signOut(auth);
+  dayData = {}; userProfile = {};
+};
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function renderAll() {
+  renderStats();
+  renderGoalBar();
+  renderCalendar();
+}
+
+function renderSidebar() {
+  const container = document.getElementById('sidebar-peers');
+  container.innerHTML = '';
+
+  // "You" entry
+  const myDone = Object.entries(dayData)
+    .filter(([k,v]) => k.startsWith(monthPrefix()) && v === 'done').length;
+  const myGoal = currentMonthGoal();
+  const myPct  = myGoal > 0 ? Math.min(100, Math.round((myDone / myGoal) * 100)) : 0;
+  const youEl  = document.createElement('div');
+  youEl.className = 'peer-item you' + (!viewingPeer ? ' active' : '');
+  youEl.innerHTML = `
+    <div class="peer-name">You</div>
+    <div class="peer-progress-wrap">
+      <div class="peer-progress-fill" style="width:${myPct}%"></div>
+    </div>`;
+  youEl.addEventListener('click', returnToOwnCalendar);
+  container.appendChild(youEl);
+
+  // Peer entries
+  allPeers.forEach(peer => {
+    const pct = peer.wfoGoal > 0 ? Math.min(100, Math.round((peer.doneCount / peer.wfoGoal) * 100)) : 0;
+    const el  = document.createElement('div');
+    el.className = 'peer-item' + (viewingPeer && viewingPeer.uid === peer.uid ? ' active' : '');
+    el.innerHTML = `
+      <div class="peer-name">${escapeHtml(peer.username)}</div>
+      <div class="peer-progress-wrap">
+        <div class="peer-progress-fill" style="width:${pct}%"></div>
+      </div>`;
+    el.addEventListener('click', () => openPeerCalendar(peer.uid, peer.username));
+    container.appendChild(el);
+  });
+}
+
+window.openPeerCalendar = async function(uid, username) {
+  // load their days
+  const wfoSnap = await getDoc(doc(db, "wfo", uid));
+  const peerDays = wfoSnap.exists() ? wfoSnap.data() : {};
+  const peerProfile = allPeers.find(p => p.uid === uid) || {};
+  viewingPeer = { uid, username, dayData: peerDays, wfoGoal: peerProfile.wfoGoal || 12 };
+
+  // update banner
+  const banner = document.getElementById('view-banner');
+  banner.querySelector('strong').textContent = username + "'s";
+  banner.classList.add('active');
+
+  // hide goal bar and stats when viewing peer
+  document.querySelector('.goal-bar').style.display = 'none';
+  document.querySelector('.stats-bar').style.display = 'none';
+
+  renderCalendar();
+  renderSidebar();
+};
+
+window.returnToOwnCalendar = function() {
+  viewingPeer = null;
+  document.getElementById('view-banner').classList.remove('active');
+  document.querySelector('.goal-bar').style.display = '';
+  document.querySelector('.stats-bar').style.display = '';
+  renderAll();
+  renderSidebar();
+};
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderStats() {
+  const prefix  = monthPrefix();
+  const entries = Object.entries(dayData).filter(([k]) => k.startsWith(prefix));
+  const done    = entries.filter(([,v]) => v === 'done').length;
+  const planned = entries.filter(([,v]) => v === 'planned').length;
+  const selected = done + planned;           // total days touched (planned + done)
+  const goal    = currentMonthGoal();
+  const pending = Math.max(0, goal - done);
+  const pct     = goal > 0 ? Math.min(100, Math.round((done / goal) * 100)) : 0;
+
+  document.getElementById('stat-goal').textContent    = goal;
+  document.getElementById('stat-done').textContent    = done;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('goal-display').textContent = goal;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('pct-label').textContent    = pct + '% complete this month';
+
+  // ── nudge message ──
+  const nudgeEl = document.getElementById('nudge-msg');
+  if (nudgeEl) {
+    const shortfall = goal - selected;
+    if (goal > 0 && shortfall > 0) {
+      nudgeEl.textContent = `${selected} day${selected !== 1 ? 's' : ''} selected — select ${shortfall} more to match your target`;
+    } else {
+      nudgeEl.textContent = '';
+    }
+  }
+}
+
+function renderGoalBar() {
+  const monthLabel = MONTHS[viewMonth] + ' ' + viewYear;
+  document.getElementById('goal-controls').innerHTML =
+    `<button class="btn-sm" onclick="startEditGoal()">Set ${monthLabel} Goal</button>`;
+}
+
+function renderCalendar() {
+  const activeDayData = viewingPeer ? viewingPeer.dayData : dayData;
+  const isReadOnly    = !!viewingPeer;
+
+  document.getElementById('cal-title').textContent = MONTHS[viewMonth] + ' ' + viewYear;
+
+  const grid  = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Day-of-week headers
+  DOW.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay  = new Date(viewYear, viewMonth, 1).getDay();
+  const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const todayMid  = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayKey  = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Empty leading cells
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-cell empty';
+    grid.appendChild(el);
+  }
+
+  // Day cells
+  for (let d = 1; d <= totalDays; d++) {
+    const key    = dateKey(viewYear, viewMonth, d);
+    const status = activeDayData[key] || '';
+    const cellDate = new Date(viewYear, viewMonth, d);
+    const isToday  = key === todayKey;
+    const isPast   = cellDate < todayMid;
+
+    const el = document.createElement('div');
+    el.className = [
+      'cal-cell',
+      isToday ? 'today' : isPast ? 'past' : 'future',
+      status
+    ].filter(Boolean).join(' ');
+    el.textContent = d;
+    el.title = key;
+    if (!isReadOnly) {
+      el.addEventListener('click', () => toggleDay(key));
+    } else {
+      el.style.cursor = 'default';
+    }
+    grid.appendChild(el);
+  }
+}
+
+// ── TOGGLE DAY ────────────────────────────────────────────────────────
+async function toggleDay(key) {
+  const cur  = dayData[key];
+  const next = !cur ? 'planned' : cur === 'planned' ? 'done' : null;
+  if (next) dayData[key] = next; else delete dayData[key];
+
+  renderAll();
+
+  try {
+    await persistDays();
+    const labels = { planned: '📅 Marked as planned', done: '✅ Marked as attended' };
+    toast(labels[next] || '🗑 Day cleared');
+  } catch(e) {
+    toast('⚠️ Could not save. Check your connection.');
+  }
+}
+
+// ── GOAL EDIT ─────────────────────────────────────────────────────────
+window.startEditGoal = function() {
+  const cur = currentMonthGoal();
+  const monthLabel = MONTHS[viewMonth] + ' ' + viewYear;
+  document.getElementById('goal-controls').innerHTML = `
+    <span style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">${monthLabel} target:</span>
+    <input class="goal-input" type="number" id="goal-input-field" min="0" max="31" value="${cur}"/>
+    <button class="btn-sm" onclick="saveGoal()">Save</button>
+    <button class="btn-sm" onclick="renderGoalBar()">Cancel</button>
+  `;
+  document.getElementById('goal-input-field').focus();
+  document.getElementById('goal-input-field').addEventListener('keydown', e => { if(e.key==='Enter') saveGoal(); });
+};
+
+window.saveGoal = async function() {
+  const val = parseInt(document.getElementById('goal-input-field').value, 10);
+  if (isNaN(val) || val < 0 || val > 31) { toast('Enter a number between 0 and 31'); return; }
+
+  // Save into the monthGoals map using merge so other months and user data are untouched
+  const key = monthPrefix();
+  const updatedGoals = { ...(userProfile.monthGoals || {}), [key]: val };
+  await persistProfile({ monthGoals: updatedGoals });
+
+  renderAll();
+  toast('🎯 ' + MONTHS[viewMonth] + ' target set to ' + val + ' days');
+};
+
+// ── MONTH NAVIGATION ──────────────────────────────────────────────────
+window.changeMonth = function(dir) {
+  viewMonth += dir;
+  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+  if (viewMonth > 11) { viewMonth = 0;  viewYear++; }
+  renderAll();
+  renderSidebar();
+};
+
+// ── SETTINGS ─────────────────────────────────────────────────────────
+window.openSettings = function() {
+  document.getElementById('s-username').value = userProfile.username || '';
+  document.getElementById('s-email').value    = currentUser.email    || '';
+  document.getElementById('s-password').value = '';
+  document.getElementById('settings-msg').textContent = '';
+  document.getElementById('settings-modal').classList.add('open');
+};
+
+window.closeSettings = function() {
+  document.getElementById('settings-modal').classList.remove('open');
+};
+
+window.saveSettings = async function() {
+  const username = document.getElementById('s-username').value.trim();
+  const email    = document.getElementById('s-email').value.trim();
+  const password = document.getElementById('s-password').value;
+  const msgEl    = document.getElementById('settings-msg');
+
+  setLoading('settings-save-btn', true);
+  msgEl.textContent = '';
+
+  try {
+    const updates = { username };
+    if (email && email !== currentUser.email) updates.email = email;
+    await persistProfile(updates);
+
+    if (email && email !== currentUser.email) await updateEmail(currentUser, email);
+    if (password) await updatePassword(currentUser, password);
+
+    document.getElementById('header-username').textContent = username;
+    showMsg(msgEl, 'Changes saved successfully.', 'ok');
+    document.getElementById('s-password').value = '';
+    renderStats(); // refresh goal display if changed
+  } catch(e) {
+    showMsg(msgEl, friendlyError(e.code) || e.message, 'err');
+  } finally {
+    setLoading('settings-save-btn', false);
+  }
+};
+
+// close modal on backdrop click
+document.getElementById('settings-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+// ── HELPERS ───────────────────────────────────────────────────────────
+function monthPrefix() {
+  return viewYear + '-' + String(viewMonth + 1).padStart(2,'0');
+}
+
+function dateKey(y, m, d) {
+  return y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+
+function showMsg(el, text, type) {
+  el.textContent = text;
+  el.className = 'auth-msg ' + type;
+  el.style.display = 'block';
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  if (loading) btn.dataset.orig = btn.textContent, btn.textContent = 'Please wait…';
+  else btn.textContent = btn.dataset.orig || 'Submit';
+}
+
+function friendlyError(code) {
+  const map = {
+    'auth/email-already-in-use':  'That email is already registered.',
+    'auth/invalid-email':         'Please enter a valid email address.',
+    'auth/weak-password':         'Password must be at least 6 characters.',
+    'auth/user-not-found':        'No account found with that email.',
+    'auth/wrong-password':        'Incorrect password. Please try again.',
+    'auth/invalid-credential':    'Incorrect email or password.',
+    'auth/too-many-requests':     'Too many attempts. Please wait and try again.',
+    'auth/requires-recent-login': 'Please sign out and sign back in to change email/password.',
+  };
+  return map[code] || 'Something went wrong. Please try again.';
+}
+
+</script>
+</body>
+</html>
