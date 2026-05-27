@@ -106,8 +106,8 @@
     .cal-cell.weekoff{background:rgba(28,30,50,.85)!important;border-color:#252a40!important;color:#36405a!important;cursor:default!important;opacity:1!important}
     .cal-cell.weekoff:hover{background:rgba(28,30,50,.85)!important;border-color:#252a40!important}
     /* ── DOW PICKER ── */
-    .dow-picker{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.2rem}
-    .dow-btn{flex:1;min-width:54px;padding:.75rem .4rem;border:1px solid var(--border);background:var(--ink);color:var(--muted);font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border-radius:2px;cursor:pointer;transition:all .18s;text-align:center;user-select:none}
+    .dow-picker{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:1.2rem}
+    .dow-btn{padding:.75rem .25rem;border:1px solid var(--border);background:var(--ink);color:var(--muted);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:2px;cursor:pointer;transition:all .18s;text-align:center;user-select:none;width:100%}
     .dow-btn:hover{border-color:var(--muted);color:var(--cream)}
     .dow-btn.selected{background:rgba(28,30,50,.9);border-color:#5a6080;color:#8890b8}
     .dow-btn.selected:hover{background:rgba(40,44,72,.9);border-color:#7080a8;color:#aab0d8}
