@@ -268,6 +268,47 @@
     .cal-cell.done:hover { background: var(--green-l); }
     .cal-cell.today.planned,
     .cal-cell.today.done { box-shadow: 0 0 0 2px var(--gold); }
+    .cal-cell.weekoff {
+      background: #1e2030 !important;
+      border-color: #2a2f44 !important;
+      color: #4a5068 !important;
+      cursor: default !important;
+      opacity: 1 !important;
+    }
+    .cal-cell.weekoff:hover {
+      background: #1e2030 !important;
+      border-color: #2a2f44 !important;
+    }
+
+    /* ── WEEKOFF PICKER ── */
+    .weekoff-grid {
+      display: grid; grid-template-columns: repeat(7,1fr); gap: 5px;
+      margin-bottom: 1.5rem;
+    }
+    .weekoff-dow {
+      text-align: center; font-size: .6rem;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted); padding: .3rem 0;
+    }
+    .weekoff-day {
+      aspect-ratio: 1; display: flex;
+      align-items: center; justify-content: center;
+      font-size: .85rem; border: 1px solid var(--border);
+      border-radius: 1px; background: var(--ink);
+      color: var(--cream); cursor: pointer;
+      transition: all .14s; user-select: none;
+    }
+    .weekoff-day.empty { background: transparent; border-color: transparent; cursor: default; }
+    .weekoff-day.off {
+      background: #1e2030; border-color: #2a2f44;
+      color: #4a5068;
+    }
+    .weekoff-day.off.selected {
+      background: #3a3f5c; border-color: #5a6080;
+      color: #8890b8;
+    }
+    .weekoff-day:not(.empty):not(.off):hover { background: rgba(201,168,76,.08); border-color: var(--border); }
+    .weekoff-day.off:hover { background: #2a2f4c; border-color: #4a5070; color: #7880a8; }
 
     /* ── LEGEND ── */
     .legend {
@@ -283,6 +324,7 @@
     .legend-dot.none    { background: var(--navy); border: 1px solid var(--border); }
     .legend-dot.planned { background: var(--maroon); }
     .legend-dot.done    { background: var(--green); }
+    .legend-dot.weekoff { background: #1e2030; border: 1px solid #2a2f44; }
 
     /* ── HOW-TO ── */
     .howto {
@@ -636,6 +678,7 @@
       <div class="cal-nav">
         <button onclick="changeMonth(-1)">‹</button>
         <button onclick="changeMonth(+1)">›</button>
+        <button id="weekoff-btn" onclick="openWeekOff()" style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;padding:.35rem .75rem">Week-Off Days</button>
       </div>
     </div>
     <div class="cal-grid" id="cal-grid"></div>
@@ -645,6 +688,7 @@
       <div class="legend-item"><div class="legend-dot none"></div>Not Selected</div>
       <div class="legend-item"><div class="legend-dot planned"></div>Planned WFO</div>
       <div class="legend-item"><div class="legend-dot done"></div>Attended</div>
+      <div class="legend-item"><div class="legend-dot weekoff"></div>Week Off</div>
     </div>
 
     <!-- HOW TO -->
@@ -661,6 +705,21 @@
   </div><!-- /.main-content -->
   </div><!-- /.app-layout -->
 </div><!-- /#screen-app -->
+
+<!-- ══ WEEK-OFF MODAL ══ -->
+<div class="modal-overlay" id="weekoff-modal">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <h2 id="weekoff-modal-title">Week-Off Days</h2>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.2rem;letter-spacing:.04em;line-height:1.6">
+      Click days to mark them as week-off. They'll appear greyed out in the calendar and won't count towards your WFO goal.
+    </p>
+    <div class="weekoff-grid" id="weekoff-grid"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="weekoff-save-btn" onclick="saveWeekOff()">Save Week-Off Days</button>
+      <button class="btn-ghost" onclick="closeWeekOff()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ SETTINGS MODAL ══ -->
 <div class="modal-overlay" id="settings-modal">
@@ -721,8 +780,9 @@ const db   = getFirestore(app);
 
 // ── STATE ─────────────────────────────────────────────────────────────
 let currentUser    = null;
-let userProfile    = { username: "", wfoGoal: 12, monthGoals: {} };
+let userProfile    = { username: "", wfoGoal: 12, monthGoals: {}, weekOff: {} };
 let dayData        = {};          // { "YYYY-MM-DD": "planned" | "done" }
+let weekOffData    = {};          // { "YYYY-MM": [1,5,12,...] }  day numbers (1-based)
 const today        = new Date();
 let viewYear       = today.getFullYear();
 let viewMonth      = today.getMonth();   // 0-based
@@ -760,7 +820,17 @@ function toast(msg) {
 }
 
 // ── AUTH STATE ────────────────────────────────────────────────────────
+// Fallback: if Firebase auth doesn't resolve in 10s (e.g. domain not authorized),
+// show login screen instead of hanging on "Loading…"
+const _authTimeout = setTimeout(() => {
+  if (document.getElementById('screen-loading').classList.contains('active')) {
+    console.warn('Firebase auth timed out — check authorized domains in Firebase Console');
+    showScreen('login');
+  }
+}, 10000);
+
 onAuthStateChanged(auth, async (user) => {
+  clearTimeout(_authTimeout);
   if (user) {
     currentUser = user;
     await loadProfile();
@@ -780,8 +850,9 @@ onAuthStateChanged(auth, async (user) => {
 async function loadProfile() {
   const snap = await getDoc(doc(db, "users", currentUser.uid));
   const data = snap.exists() ? snap.data() : { username: "User", wfoGoal: 12 };
-  // ensure monthGoals always exists in memory even if not yet in Firestore
-  userProfile = { monthGoals: {}, ...data };
+  // ensure monthGoals and weekOff always exist in memory even if not yet in Firestore
+  userProfile  = { monthGoals: {}, weekOff: {}, ...data };
+  weekOffData  = userProfile.weekOff || {};
 }
 
 async function loadDays() {
@@ -1013,8 +1084,13 @@ function renderGoalBar() {
 function renderCalendar() {
   const activeDayData = viewingPeer ? viewingPeer.dayData : dayData;
   const isReadOnly    = !!viewingPeer;
+  const weekOffDays   = weekOffData[monthPrefix()] || [];
 
   document.getElementById('cal-title').textContent = MONTHS[viewMonth] + ' ' + viewYear;
+
+  // Hide week-off button when viewing a peer
+  const weekoffBtn = document.getElementById('weekoff-btn');
+  if (weekoffBtn) weekoffBtn.style.display = isReadOnly ? 'none' : '';
 
   const grid  = document.getElementById('cal-grid');
   grid.innerHTML = '';
@@ -1041,24 +1117,31 @@ function renderCalendar() {
 
   // Day cells
   for (let d = 1; d <= totalDays; d++) {
-    const key    = dateKey(viewYear, viewMonth, d);
-    const status = activeDayData[key] || '';
+    const key      = dateKey(viewYear, viewMonth, d);
+    const status   = activeDayData[key] || '';
+    const isOff    = weekOffDays.includes(d);
     const cellDate = new Date(viewYear, viewMonth, d);
     const isToday  = key === todayKey;
     const isPast   = cellDate < todayMid;
 
     const el = document.createElement('div');
-    el.className = [
-      'cal-cell',
-      isToday ? 'today' : isPast ? 'past' : 'future',
-      status
-    ].filter(Boolean).join(' ');
-    el.textContent = d;
-    el.title = key;
-    if (!isReadOnly) {
-      el.addEventListener('click', () => toggleDay(key));
+    if (isOff) {
+      el.className = 'cal-cell weekoff';
+      el.textContent = d;
+      el.title = key + ' (week off)';
     } else {
-      el.style.cursor = 'default';
+      el.className = [
+        'cal-cell',
+        isToday ? 'today' : isPast ? 'past' : 'future',
+        status
+      ].filter(Boolean).join(' ');
+      el.textContent = d;
+      el.title = key;
+      if (!isReadOnly) {
+        el.addEventListener('click', () => toggleDay(key));
+      } else {
+        el.style.cursor = 'default';
+      }
     }
     grid.appendChild(el);
   }
@@ -1116,6 +1199,99 @@ window.changeMonth = function(dir) {
   renderAll();
   renderSidebar();
 };
+
+// ── WEEK-OFF MODAL ────────────────────────────────────────────────────
+let _weekOffDraft = [];   // temp selection while modal is open
+
+window.openWeekOff = function() {
+  const prefix      = monthPrefix();
+  _weekOffDraft     = [...(weekOffData[prefix] || [])];
+  const totalDays   = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
+
+  document.getElementById('weekoff-modal-title').textContent =
+    'Week-Off Days — ' + MONTHS[viewMonth] + ' ' + viewYear;
+
+  const grid = document.getElementById('weekoff-grid');
+  grid.innerHTML = '';
+
+  // DOW headers
+  DOW.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'weekoff-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'weekoff-day empty';
+    grid.appendChild(el);
+  }
+
+  // Day buttons
+  for (let d = 1; d <= totalDays; d++) {
+    const el = document.createElement('div');
+    el.className = 'weekoff-day' + (_weekOffDraft.includes(d) ? ' off selected' : '');
+    el.textContent = d;
+    el.dataset.day = d;
+    el.addEventListener('click', () => {
+      const day = parseInt(el.dataset.day, 10);
+      if (_weekOffDraft.includes(day)) {
+        _weekOffDraft = _weekOffDraft.filter(x => x !== day);
+        el.classList.remove('selected');
+      } else {
+        _weekOffDraft.push(day);
+        el.classList.add('off', 'selected');
+      }
+    });
+    grid.appendChild(el);
+  }
+
+  document.getElementById('weekoff-modal').classList.add('open');
+};
+
+window.closeWeekOff = function() {
+  document.getElementById('weekoff-modal').classList.remove('open');
+};
+
+window.saveWeekOff = async function() {
+  const prefix = monthPrefix();
+  const btn = document.getElementById('weekoff-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  // Clean up dayData: remove planned/done from newly off days
+  const newOff = _weekOffDraft;
+  const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+  for (let d = 1; d <= totalDays; d++) {
+    if (newOff.includes(d)) {
+      const key = dateKey(viewYear, viewMonth, d);
+      if (dayData[key]) {
+        delete dayData[key];
+      }
+    }
+  }
+
+  const updatedWeekOff = { ...(weekOffData || {}), [prefix]: newOff };
+  await persistProfile({ weekOff: updatedWeekOff });
+  weekOffData = updatedWeekOff;
+
+  if (Object.keys(dayData).length > 0 || newOff.length > 0) {
+    await persistDays();
+  }
+
+  closeWeekOff();
+  renderAll();
+  btn.disabled = false;
+  btn.textContent = 'Save Week-Off Days';
+  toast('📅 Week-off days saved for ' + MONTHS[viewMonth]);
+};
+
+document.getElementById('weekoff-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeWeekOff();
+});
 
 // ── SETTINGS ─────────────────────────────────────────────────────────
 window.openSettings = function() {
