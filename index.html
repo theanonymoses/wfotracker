@@ -323,7 +323,7 @@
             <strong style="color:#f5f0e8">Click once</strong> on a date to mark it planned (maroon).
             <strong style="color:#f5f0e8">Click again</strong> to confirm attendance (green).
             <strong style="color:#f5f0e8">Click a third time</strong> to clear it.
-            Use <strong style="color:#f5f0e8">Week-Off Days</strong> to grey out recurring days off (e.g. Sat &amp; Sun) across all months.
+            Use <strong style="color:#f5f0e8">Week-Off Days</strong> to grey out days off for the current month (e.g. Sat &amp; Sun in June).
             Customise your background in <strong style="color:#f5f0e8">Settings</strong>.
           </p>
         </div>
@@ -337,7 +337,7 @@
   <div class="modal" onclick="event.stopPropagation()">
     <h2>Week-Off Days</h2>
     <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.4rem;line-height:1.6">
-      Select the days of the week that are always off. Every matching date across all months will appear greyed out and won't count towards your goal.
+      Select the days of the week that are off <strong id="weekoff-modal-month"></strong>. Those dates will appear greyed out on the calendar and won't count towards your goal.
     </p>
     <div class="dow-picker" id="dow-picker"></div>
     <div class="dow-preview" id="dow-preview"></div>
@@ -425,7 +425,7 @@ const BG_THEMES = [
 
 // ── STATE ────────────────────────────────────────────────────────────
 let currentUser  = null;
-let userProfile  = { username:'', wfoGoal:12, monthGoals:{}, weekOffDays:[], bgTheme:'default' };
+let userProfile  = { username:'', wfoGoal:12, monthGoals:{}, weekOff:{}, bgTheme:'default' };
 let dayData      = {};
 const today      = new Date();
 let viewYear     = today.getFullYear();
@@ -501,7 +501,7 @@ onAuthStateChanged(auth, async user => {
 async function loadProfile() {
   const snap = await getDoc(doc(db,'users',currentUser.uid));
   const data = snap.exists() ? snap.data() : { username:'User', wfoGoal:12 };
-  userProfile = { monthGoals:{}, weekOffDays:[], bgTheme:'default', ...data };
+  userProfile = { monthGoals:{}, weekOff:{}, bgTheme:'default', ...data };
 }
 async function loadDays() {
   const snap = await getDoc(doc(db,'wfo',currentUser.uid));
@@ -673,7 +673,7 @@ function renderGoalBar() {
 function renderCalendar() {
   const activeDayData  = viewingPeer ? viewingPeer.dayData : dayData;
   const isReadOnly     = !!viewingPeer;
-  const weekOffIndices = userProfile.weekOffDays || [];
+  const weekOffIndices = (userProfile.weekOff || {})[monthPrefix()] || [];
 
   document.getElementById('cal-title').textContent = MONTHS[viewMonth]+' '+viewYear;
   document.getElementById('weekoff-btn').style.display = isReadOnly ? 'none' : '';
@@ -758,7 +758,9 @@ window.changeMonth = function(dir) {
 
 // ── WEEK-OFF (DOW based) ──────────────────────────────────────────────
 window.openWeekOff = function() {
-  _weekOffDraft = [...(userProfile.weekOffDays||[])];
+  const prefix = monthPrefix();
+  _weekOffDraft = [...((userProfile.weekOff||{})[prefix]||[])];
+  document.getElementById('weekoff-modal-month').textContent = 'for ' + MONTHS[viewMonth] + ' ' + viewYear;
   const picker = document.getElementById('dow-picker');
   picker.innerHTML = '';
   DOW.forEach((name, idx) => {
@@ -786,24 +788,29 @@ function updateDowPreview() {
     el.textContent='No days selected — all days are working days.';
   } else {
     const names=_weekOffDraft.slice().sort((a,b)=>a-b).map(i=>DOW[i]);
-    el.textContent=names.join(', ')+' will be greyed out across all months.';
+    el.textContent=names.join(', ')+' will be greyed out in ' + MONTHS[viewMonth] + ' ' + viewYear + '.';
   }
 }
 window.closeWeekOff = () => document.getElementById('weekoff-modal').classList.remove('open');
 window.saveWeekOff = async function() {
   const btn=document.getElementById('weekoff-save-btn');
   btn.disabled=true; btn.textContent='Saving…';
+  const prefix = monthPrefix();
+  // Clear any planned/done entries that fall on newly off days — only for current month
   const offSet=new Set(_weekOffDraft);
   Object.keys(dayData).forEach(key => {
+    if (!key.startsWith(prefix)) return;
     const parts=key.split('-');
     if(offSet.has(new Date(+parts[0],+parts[1]-1,+parts[2]).getDay())) delete dayData[key];
   });
-  await persistProfile({weekOffDays:_weekOffDraft});
+  // Merge into per-month weekOff map
+  const updatedWeekOff = { ...(userProfile.weekOff||{}), [prefix]: _weekOffDraft };
+  await persistProfile({ weekOff: updatedWeekOff });
   await persistDays();
   closeWeekOff(); renderAll();
   btn.disabled=false; btn.textContent='Save';
   const names=_weekOffDraft.length===0?'none':_weekOffDraft.slice().sort((a,b)=>a-b).map(i=>DOW[i]).join(', ');
-  toast('📅 Week-off days: '+names);
+  toast('📅 '+MONTHS[viewMonth]+' week-off: '+names);
 };
 document.getElementById('weekoff-modal').addEventListener('click', function(e){if(e.target===this)closeWeekOff();});
 
