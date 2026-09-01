@@ -1,1927 +1,916 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Quality Team Dashboard</title>
-
-<!-- Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- React -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
-
-<!-- Firebase (compat SDK — no bundler needed) -->
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
-
-<style>
-  :root{
-    --paper:#FAFAF8;
-    --paper-raised:#FFFFFF;
-    --ink:#1C1E21;
-    --ink-soft:#3F4247;
-    --muted:#6B7280;
-    --muted-2:#9CA0A8;
-    --border:#E4E2DC;
-    --border-strong:#D6D3CB;
-    --accent:#3D5A80;
-    --accent-dark:#2E4664;
-    --accent-tint:#EBF0F5;
-    --success:#2A7F62;
-    --success-tint:#E9F5F0;
-    --danger:#B3432E;
-    --danger-tint:#FBEEEB;
-    --warn:#9C6B1E;
-    --warn-tint:#FAF1E0;
-    --radius-s:6px;
-    --radius-m:10px;
-    --radius-l:14px;
-    --shadow-s:0 1px 2px rgba(28,30,33,0.06);
-    --shadow-m:0 4px 16px rgba(28,30,33,0.08);
-    --shadow-l:0 12px 40px rgba(28,30,33,0.14);
-    --sidebar-w:248px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-    -webkit-font-smoothing:antialiased;
-    font-size:14px;
-    line-height:1.5;
-  }
-  h1,h2,h3,h4{
-    font-family:'Source Serif 4', Georgia, serif;
-    font-weight:600;
-    margin:0;
-    color:var(--ink);
-    letter-spacing:-0.01em;
-  }
-  a{color:inherit;text-decoration:none;}
-  button{font-family:inherit;cursor:pointer;}
-  input,textarea,select{font-family:inherit;}
-  ::selection{background:var(--accent-tint);}
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-
-  /* ---------- Layout ---------- */
-  .app-shell{display:flex;min-height:100vh;}
-  .sidebar{
-    width:var(--sidebar-w);
-    flex-shrink:0;
-    background:var(--paper-raised);
-    border-right:1px solid var(--border);
-    display:flex;
-    flex-direction:column;
-    position:fixed;
-    top:0;left:0;bottom:0;
-    z-index:40;
-    transition:transform .25s ease;
-  }
-  .sidebar-brand{
-    padding:24px 22px 20px 22px;
-    border-bottom:1px solid var(--border);
-  }
-  .sidebar-brand .mark{
-    font-family:'Source Serif 4',serif;
-    font-weight:700;
-    font-size:18px;
-    letter-spacing:-0.01em;
-  }
-  .sidebar-brand .sub{
-    color:var(--muted);
-    font-size:11.5px;
-    margin-top:2px;
-  }
-  .sidebar-nav{padding:14px 12px;flex:1;}
-  .nav-item{
-    display:flex;align-items:center;gap:10px;
-    padding:9px 12px;
-    border-radius:var(--radius-s);
-    color:var(--ink-soft);
-    font-size:13.5px;
-    font-weight:500;
-    margin-bottom:2px;
-    transition:background .15s ease, color .15s ease;
-  }
-  .nav-item:hover{background:var(--paper);color:var(--ink);}
-  .nav-item.active{background:var(--accent-tint);color:var(--accent-dark);}
-  .nav-item .ic{width:16px;height:16px;flex-shrink:0;}
-  .nav-item .badge{
-    margin-left:auto;background:var(--border);color:var(--ink-soft);
-    font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;
-  }
-  .nav-item.active .badge{background:var(--accent);color:#fff;}
-
-  .sidebar-foot{
-    border-top:1px solid var(--border);
-    padding:14px 16px;
-    position:relative;
-  }
-  .profile-row{display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px;border-radius:var(--radius-s);}
-  .profile-row:hover{background:var(--paper);}
-  .avatar{
-    width:32px;height:32px;border-radius:50%;
-    background:var(--accent);color:#fff;
-    display:flex;align-items:center;justify-content:center;
-    font-size:12.5px;font-weight:600;flex-shrink:0;
-  }
-  .profile-name{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .profile-role{font-size:11px;color:var(--muted);}
-  .profile-menu{
-    position:absolute;bottom:64px;left:14px;right:14px;
-    background:#fff;border:1px solid var(--border);border-radius:var(--radius-m);
-    box-shadow:var(--shadow-l);padding:6px;z-index:50;
-  }
-  .profile-menu button{
-    display:block;width:100%;text-align:left;background:none;border:none;
-    padding:9px 10px;border-radius:var(--radius-s);font-size:13px;color:var(--ink-soft);
-  }
-  .profile-menu button:hover{background:var(--paper);color:var(--ink);}
-
-  .main{
-    margin-left:var(--sidebar-w);
-    flex:1;
-    min-width:0;
-    display:flex;flex-direction:column;
-  }
-  .topbar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:20px 32px;
-    border-bottom:1px solid var(--border);
-    background:var(--paper);
-    position:sticky;top:0;z-index:20;
-  }
-  .topbar h1{font-size:22px;}
-  .topbar .desc{color:var(--muted);font-size:13px;margin-top:3px;}
-  .hamburger{display:none;background:none;border:1px solid var(--border);border-radius:var(--radius-s);width:34px;height:34px;align-items:center;justify-content:center;}
-  .content{padding:28px 32px 60px 32px;max-width:1180px;}
-
-  /* ---------- Buttons ---------- */
-  .btn{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:8px 14px;border-radius:var(--radius-s);
-    font-size:13px;font-weight:600;border:1px solid transparent;
-    transition:background .15s ease, border-color .15s ease, transform .06s ease;
-    white-space:nowrap;
-  }
-  .btn:active{transform:scale(0.98);}
-  .btn-primary{background:var(--accent);color:#fff;}
-  .btn-primary:hover{background:var(--accent-dark);}
-  .btn-secondary{background:#fff;color:var(--ink-soft);border-color:var(--border-strong);}
-  .btn-secondary:hover{background:var(--paper);border-color:var(--muted-2);}
-  .btn-danger{background:#fff;color:var(--danger);border-color:var(--danger);}
-  .btn-danger:hover{background:var(--danger-tint);}
-  .btn-ghost{background:none;color:var(--muted);border-color:transparent;padding:6px 8px;}
-  .btn-ghost:hover{background:var(--paper);color:var(--ink);}
-  .btn-sm{padding:5px 10px;font-size:12px;}
-  .btn:disabled{opacity:.5;cursor:not-allowed;}
-  .btn-icon{width:32px;height:32px;padding:0;align-items:center;justify-content:center;}
-
-  /* ---------- Cards / tables ---------- */
-  .card{
-    background:var(--paper-raised);
-    border:1px solid var(--border);
-    border-radius:var(--radius-m);
-    box-shadow:var(--shadow-s);
-  }
-  .card-pad{padding:20px 22px;}
-  .card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
-  .card-head h3{font-size:15px;}
-  .grid-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
-  .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
-
-  table{width:100%;border-collapse:collapse;font-size:13.5px;}
-  thead th{
-    text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;
-    text-transform:none;letter-spacing:0.01em;
-    padding:10px 20px;border-bottom:1px solid var(--border);background:var(--paper);
-  }
-  tbody td{padding:13px 20px;border-bottom:1px solid var(--border);vertical-align:middle;}
-  tbody tr:last-child td{border-bottom:none;}
-  tbody tr{transition:background .12s ease;}
-  tbody tr:hover{background:var(--paper);}
-  .table-wrap{overflow-x:auto;}
-
-  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;}
-  .badge-pending{background:var(--warn-tint);color:var(--warn);}
-  .badge-done{background:var(--success-tint);color:var(--success);}
-  .badge-admin{background:var(--accent-tint);color:var(--accent-dark);}
-  .badge-user{background:var(--border);color:var(--ink-soft);}
-
-  .empty-state{padding:56px 20px;text-align:center;color:var(--muted);}
-  .empty-state .glyph{font-size:26px;margin-bottom:10px;opacity:.5;}
-  .empty-state .t1{color:var(--ink-soft);font-weight:600;font-size:14px;margin-bottom:4px;}
-  .empty-state .t2{font-size:13px;}
-
-  /* ---------- Forms ---------- */
-  .field{margin-bottom:16px;}
-  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
-  .field input[type=text],.field input[type=email],.field input[type=password],.field input[type=date],.field input[type=url],.field textarea,.field select{
-    width:100%;padding:9px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-s);
-    font-size:13.5px;color:var(--ink);background:#fff;transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  .field input:focus,.field textarea:focus,.field select:focus{
-    border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint);outline:none;
-  }
-  .field textarea{resize:vertical;min-height:80px;}
-  .field .hint{font-size:11.5px;color:var(--muted);margin-top:5px;}
-  .field .err{font-size:11.5px;color:var(--danger);margin-top:5px;}
-  .field-row{display:flex;gap:12px;}
-  .field-row .field{flex:1;}
-  .radio-row{display:flex;gap:8px;flex-wrap:wrap;}
-  .radio-chip{
-    padding:7px 12px;border:1px solid var(--border-strong);border-radius:20px;font-size:12.5px;font-weight:500;
-    color:var(--ink-soft);background:#fff;
-  }
-  .radio-chip.sel{background:var(--accent);border-color:var(--accent);color:#fff;}
-
-  /* ---------- Modal ---------- */
-  .modal-overlay{
-    position:fixed;inset:0;background:rgba(28,30,33,0.42);z-index:100;
-    display:flex;align-items:center;justify-content:center;padding:20px;
-    animation:fadeIn .15s ease;
-  }
-  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-  .modal{
-    background:#fff;border-radius:var(--radius-l);box-shadow:var(--shadow-l);
-    width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
-    animation:modalIn .18s cubic-bezier(.2,.9,.3,1.1);
-  }
-  @keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
-  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
-  .modal-head h3{font-size:16px;}
-  .modal-body{padding:22px;}
-  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border);}
-  .modal.confirm .modal-body{padding:22px;color:var(--ink-soft);font-size:13.5px;line-height:1.6;}
-
-  /* ---------- Toasts ---------- */
-  .toast-stack{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;}
-  .toast{
-    background:var(--ink);color:#fff;padding:11px 16px;border-radius:var(--radius-s);
-    font-size:13px;box-shadow:var(--shadow-l);display:flex;align-items:center;gap:8px;
-    animation:toastIn .2s ease;min-width:220px;
-  }
-  .toast.err{background:var(--danger);}
-  .toast.ok{background:var(--ink);}
-  @keyframes toastIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
-
-  /* ---------- Auth screens ---------- */
-  .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--paper);padding:20px;}
-  .auth-card{width:100%;max-width:380px;}
-  .auth-brand{text-align:center;margin-bottom:26px;}
-  .auth-brand .mark{font-family:'Source Serif 4',serif;font-weight:700;font-size:22px;}
-  .auth-brand .sub{color:var(--muted);font-size:12.5px;margin-top:4px;}
-  .auth-box{background:#fff;border:1px solid var(--border);border-radius:var(--radius-l);padding:28px;box-shadow:var(--shadow-m);}
-  .auth-box h2{font-size:18px;margin-bottom:4px;}
-  .auth-box .lead{color:var(--muted);font-size:12.5px;margin-bottom:20px;}
-  .auth-switch{text-align:center;margin-top:16px;font-size:13px;color:var(--muted);}
-  .auth-switch button{background:none;border:none;color:var(--accent);font-weight:600;padding:0;}
-  .banner{padding:10px 13px;border-radius:var(--radius-s);font-size:12.5px;margin-bottom:16px;line-height:1.5;}
-  .banner-err{background:var(--danger-tint);color:var(--danger);}
-  .banner-ok{background:var(--success-tint);color:var(--success);}
-
-  /* ---------- Timeline ---------- */
-  .tl-date-head{
-    display:flex;align-items:baseline;gap:10px;margin:28px 0 14px 0;
-  }
-  .tl-date-head:first-child{margin-top:4px;}
-  .tl-date-head h4{font-size:14px;color:var(--ink);}
-  .tl-date-head .line{flex:1;height:1px;background:var(--border);}
-  .tl-item{
-    display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);
-  }
-  .tl-item:last-child{border-bottom:none;}
-  .tl-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent-tint);color:var(--accent-dark);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-  .tl-body{flex:1;min-width:0;}
-  .tl-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-  .tl-author{font-weight:600;font-size:13.5px;}
-  .tl-time{color:var(--muted);font-size:12px;}
-  .tl-text{color:var(--ink-soft);font-size:13.5px;line-height:1.6;white-space:pre-wrap;}
-  .tl-actions{display:flex;gap:2px;opacity:0;transition:opacity .15s ease;}
-  .tl-item:hover .tl-actions{opacity:1;}
-
-  /* ---------- Calendar ---------- */
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-m);overflow:hidden;}
-  .cal-dow{background:var(--paper);padding:8px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);}
-  .cal-cell{background:#fff;min-height:78px;padding:8px;cursor:pointer;transition:background .12s ease;position:relative;}
-  .cal-cell:hover{background:var(--paper);}
-  .cal-cell.empty{background:var(--paper);cursor:default;}
-  .cal-cell.today{box-shadow:inset 0 0 0 2px var(--accent);}
-  .cal-cell.selected{background:var(--accent-tint);}
-  .cal-daynum{font-size:12.5px;font-weight:600;color:var(--ink-soft);}
-  .cal-count{
-    margin-top:6px;display:inline-flex;align-items:center;gap:4px;
-    background:var(--accent-tint);color:var(--accent-dark);font-size:11px;font-weight:600;
-    padding:2px 7px;border-radius:20px;
-  }
-  .cal-nav{display:flex;align-items:center;gap:8px;}
-
-  /* ---------- Misc ---------- */
-  .toggle-group{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--radius-s);overflow:hidden;}
-  .toggle-group button{padding:7px 14px;background:#fff;border:none;font-size:12.5px;font-weight:600;color:var(--muted);border-right:1px solid var(--border-strong);}
-  .toggle-group button:last-child{border-right:none;}
-  .toggle-group button.on{background:var(--accent);color:#fff;}
-  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
-  .search-box{position:relative;flex:1;min-width:200px;max-width:320px;}
-  .search-box input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border-strong);border-radius:var(--radius-s);font-size:13px;}
-  .search-box .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted-2);}
-  .select-plain{padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-s);font-size:12.5px;background:#fff;color:var(--ink-soft);}
-  .link-row-name{font-weight:600;color:var(--ink);}
-  .link-row-desc{color:var(--muted);font-size:12.5px;margin-top:2px;}
-  .open-link{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:600;font-size:12.5px;}
-  .open-link:hover{text-decoration:underline;}
-  .kicker{color:var(--muted);font-size:11.5px;font-weight:600;margin-bottom:6px;}
-  .stat-num{font-family:'Source Serif 4',serif;font-size:26px;font-weight:600;}
-  .stat-label{color:var(--muted);font-size:12px;margin-top:2px;}
-  .stat-icon{width:34px;height:34px;border-radius:var(--radius-s);display:flex;align-items:center;justify-content:center;margin-bottom:12px;}
-  .quick-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;}
-  .activity-row{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
-  .activity-row:last-child{border-bottom:none;}
-  .activity-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0;}
-  .activity-text .who{font-weight:600;}
-  .activity-time{color:var(--muted-2);font-size:11.5px;margin-top:1px;}
-  .three-dot{position:relative;}
-  .dropdown{
-    position:absolute;right:0;top:34px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-s);
-    box-shadow:var(--shadow-m);z-index:30;min-width:140px;padding:5px;
-  }
-  .dropdown button{display:block;width:100%;text-align:left;background:none;border:none;padding:8px 10px;font-size:13px;border-radius:5px;color:var(--ink-soft);}
-  .dropdown button:hover{background:var(--paper);}
-  .dropdown button.danger{color:var(--danger);}
-  .checkmark{
-    width:22px;height:22px;border-radius:50%;border:2px solid var(--border-strong);
-    display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s ease;background:#fff;
-  }
-  .checkmark.done{background:var(--success);border-color:var(--success);}
-  .checkmark:hover{border-color:var(--success);}
-  .loading-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;}
-  .month-nav{display:flex;align-items:center;gap:12px;}
-  .month-nav h3{font-size:16px;min-width:150px;text-align:center;}
-  .deadline-group h4{font-size:12.5px;color:var(--muted);font-weight:600;padding:14px 20px 6px 20px;background:var(--paper);}
-  .strike{text-decoration:line-through;color:var(--muted-2) !important;}
-  .subdued{opacity:0.55;}
-  .divider-v{width:1px;background:var(--border);align-self:stretch;}
-  .global-search-results{position:absolute;top:44px;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:var(--radius-m);box-shadow:var(--shadow-l);max-height:400px;overflow-y:auto;z-index:60;}
-  .gsr-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);}
-  .gsr-item:hover{background:var(--paper);}
-  .gsr-item:last-child{border-bottom:none;}
-  .gsr-title{font-weight:600;font-size:13px;}
-  .gsr-type{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
-  .topbar-search{position:relative;width:240px;}
-
-  /* ---------- Responsive ---------- */
-  @media (max-width: 980px){
-    .grid-cards{grid-template-columns:repeat(2,1fr);}
-    .grid-2{grid-template-columns:1fr;}
-  }
-  @media (max-width: 760px){
-    .sidebar{transform:translateX(-100%);}
-    .sidebar.open{transform:translateX(0);box-shadow:var(--shadow-l);}
-    .main{margin-left:0;}
-    .hamburger{display:flex;}
-    .topbar{padding:16px 18px;}
-    .content{padding:18px 16px 60px 16px;}
-    .grid-cards{grid-template-columns:1fr;}
-    .topbar-search{display:none;}
-    table thead{display:none;}
-    table, tbody, tr, td{display:block;width:100%;}
-    tbody tr{border:1px solid var(--border);border-radius:var(--radius-m);margin-bottom:10px;padding:10px 4px;}
-    tbody td{border-bottom:none;padding:6px 12px;}
-    tbody td:before{content:attr(data-label);display:block;font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px;}
-    .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:39;}
-  }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WFO Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:'Source Sans 3',sans-serif;background:#0d1420;color:#f5f0e8;-webkit-font-smoothing:antialiased}
+    input,button,select{font-family:inherit}
+    button{cursor:pointer}
+    :root{
+      --navy:#1a2340;--ink:#0d1420;--cream:#f5f0e8;
+      --gold:#c9a84c;--gold-l:#e8c96a;
+      --maroon:#7a1f2e;--maroon-l:#9e2e42;
+      --green:#1e6b4a;--green-l:#2a8f63;
+      --muted:#8898b0;--border:#2e3d5c;
+    }
+    .screen{display:none;min-height:100vh}
+    .screen.active{display:block}
+    .app-bg{
+      min-height:100vh;
+      background:
+        radial-gradient(ellipse at 18% 0%,rgba(201,168,76,.07) 0%,transparent 55%),
+        radial-gradient(ellipse at 82% 100%,rgba(122,31,46,.09) 0%,transparent 55%),
+        var(--ink);
+    }
+    /* ── AUTH ── */
+    .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+    .auth-card{background:var(--navy);border:1px solid var(--border);border-radius:2px;padding:3rem 2.5rem;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,.55);animation:fadeUp .4s ease both}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    .auth-logo{text-align:center;margin-bottom:2.5rem}
+    .auth-logo h1{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);letter-spacing:.05em}
+    .auth-logo p{font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-top:.4rem}
+    .auth-divider{width:40px;height:1px;background:var(--gold);margin:.8rem auto;opacity:.4}
+    .field{margin-bottom:1.2rem}
+    .field label{display:block;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.45rem}
+    .field input{width:100%;padding:.75rem 1rem;background:var(--ink);border:1px solid var(--border);color:var(--cream);font-size:.95rem;border-radius:1px;outline:none;transition:border-color .2s}
+    .field input:focus{border-color:var(--gold)}
+    .btn-primary{width:100%;padding:.85rem;background:var(--gold);color:var(--ink);border:none;border-radius:1px;font-size:.78rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;transition:background .2s;margin-top:.5rem}
+    .btn-primary:hover:not(:disabled){background:var(--gold-l)}
+    .btn-primary:disabled{opacity:.6;cursor:not-allowed}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);width:100%;padding:.75rem;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;border-radius:1px;transition:all .2s;margin-top:.6rem}
+    .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+    .auth-msg{padding:.7rem 1rem;font-size:.85rem;border-radius:1px;margin-bottom:1rem}
+    .auth-msg.err{background:rgba(122,31,46,.22);border:1px solid var(--maroon);color:#e07080}
+    .auth-msg.ok{background:rgba(30,107,74,.2);border:1px solid var(--green);color:#5ecf98}
+    .auth-switch{text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--muted)}
+    .auth-switch span{color:var(--gold);cursor:pointer;text-decoration:underline}
+    /* ── HEADER ── */
+    .header{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2.5rem;border-bottom:1px solid var(--border);background:rgba(26,35,64,.88);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+    .header-logo{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);letter-spacing:.04em}
+    .header-logo span{color:var(--cream);font-size:.78em}
+    .header-right{display:flex;align-items:center;gap:1.2rem}
+    .header-user{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .btn-sm{padding:.42rem .95rem;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:1px;transition:all .2s}
+    .btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+    .btn-sm.danger:hover{border-color:var(--maroon-l);color:var(--maroon-l)}
+    /* ── STATS ── */
+    .stats-bar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:2rem;border-radius:2px;overflow:hidden}
+    .stat{background:var(--navy);padding:1.5rem 1.8rem;text-align:center}
+    .stat-num{font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:700;line-height:1}
+    .stat-num.gold{color:var(--gold)}.stat-num.green{color:var(--green-l)}.stat-num.maroon{color:var(--maroon-l)}
+    .stat-label{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:.4rem}
+    /* ── PEER STATS ── */
+    .peer-stats-bar{display:none;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:2px;overflow:hidden;margin-bottom:2rem}
+    .peer-stats-bar.active{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(201,168,76,.12)}
+    .peer-stat{background:rgba(13,20,32,.6);padding:1.2rem 1rem;text-align:center}
+    .peer-stat-num{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;line-height:1}
+    .peer-stat-num.gold{color:var(--gold)}.peer-stat-num.green{color:var(--green-l)}.peer-stat-num.maroon{color:var(--maroon-l)}
+    .peer-stat-label{font-size:.65rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:.35rem}
+    /* ── GOAL BAR ── */
+    .goal-bar{display:flex;align-items:center;justify-content:space-between;background:var(--navy);border:1px solid var(--border);padding:1.1rem 1.5rem;margin-bottom:2rem;border-radius:2px}
+    .goal-bar-left{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+    .goal-bar-left strong{color:var(--gold);font-size:1.05rem}
+    .goal-controls{display:flex;align-items:center;gap:.5rem}
+    .goal-input{width:62px;padding:.4rem .5rem;background:var(--ink);border:1px solid var(--border);color:var(--cream);text-align:center;font-family:'Playfair Display',serif;font-size:1rem;border-radius:1px;outline:none}
+    .goal-input:focus{border-color:var(--gold)}
+    .progress-wrap{background:var(--ink);border-radius:1px;height:3px;margin:.7rem 0 .3rem;width:200px}
+    .progress-fill{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--green),var(--green-l));transition:width .5s ease}
+    /* ── CALENDAR ── */
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem}
+    .cal-title{font-family:'Playfair Display',serif;font-size:1.55rem;color:var(--cream)}
+    .cal-nav{display:flex;gap:.4rem;align-items:center}
+    .cal-nav button{padding:.35rem .85rem;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:1.1rem;border-radius:1px;transition:all .2s}
+    .cal-nav button:hover{border-color:var(--gold);color:var(--gold)}
+    #weekoff-btn{font-size:.65rem !important;letter-spacing:.08em;text-transform:uppercase;padding:.35rem .75rem !important}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+    .cal-dow{text-align:center;font-size:.64rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);padding:.5rem 0}
+    .cal-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.9rem;border-radius:1px;border:1px solid transparent;transition:all .14s;user-select:none}
+    .cal-cell.empty{cursor:default}
+    .cal-cell.future{color:var(--cream);cursor:pointer}
+    .cal-cell.future:hover{background:rgba(201,168,76,.07);border-color:var(--border)}
+    .cal-cell.today{border-color:var(--gold);color:var(--gold);cursor:pointer}
+    .cal-cell.today:hover{background:rgba(201,168,76,.07)}
+    .cal-cell.past{color:var(--muted);opacity:.55;cursor:pointer}
+    .cal-cell.planned{background:var(--maroon);border-color:var(--maroon-l);color:#fff;cursor:pointer}
+    .cal-cell.planned:hover{background:var(--maroon-l)}
+    .cal-cell.done{background:var(--green);border-color:var(--green-l);color:#fff;cursor:pointer}
+    .cal-cell.done:hover{background:var(--green-l)}
+    .cal-cell.today.planned,.cal-cell.today.done{box-shadow:0 0 0 2px var(--gold)}
+    .cal-cell.weekoff{background:rgba(28,30,50,.85)!important;border-color:#252a40!important;color:#36405a!important;cursor:default!important;opacity:1!important}
+    .cal-cell.weekoff:hover{background:rgba(28,30,50,.85)!important;border-color:#252a40!important}
+    /* ── DOW PICKER ── */
+    .dow-picker{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem;margin-bottom:1.2rem}
+    .dow-btn{padding:.75rem .25rem;border:1px solid var(--border);background:var(--ink);color:var(--muted);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border-radius:2px;cursor:pointer;transition:all .18s;text-align:center;user-select:none;width:100%}
+    .dow-btn:hover{border-color:var(--muted);color:var(--cream)}
+    .dow-btn.selected{background:rgba(28,30,50,.9);border-color:#5a6080;color:#8890b8}
+    .dow-btn.selected:hover{background:rgba(40,44,72,.9);border-color:#7080a8;color:#aab0d8}
+    .dow-preview{font-size:.78rem;color:var(--muted);margin-bottom:1rem;line-height:1.6;min-height:1.5em}
+    /* ── LEGEND ── */
+    .legend{display:flex;gap:2rem;margin-top:1.4rem;justify-content:center;flex-wrap:wrap}
+    .legend-item{display:flex;align-items:center;gap:.5rem;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .legend-dot{width:14px;height:14px;border-radius:1px}
+    .legend-dot.none{background:var(--navy);border:1px solid var(--border)}
+    .legend-dot.planned{background:var(--maroon)}
+    .legend-dot.done{background:var(--green)}
+    .legend-dot.weekoff{background:rgba(28,30,50,.9);border:1px solid #252a40}
+    /* ── HOW-TO ── */
+    .howto{margin-top:2.5rem;background:var(--navy);border:1px solid var(--border);padding:1.5rem 2rem;border-radius:2px}
+    .howto h3{font-family:'Playfair Display',serif;color:var(--gold);font-size:1rem;margin-bottom:.8rem}
+    .howto p{font-size:.84rem;color:var(--muted);line-height:1.75}
+    /* ── MODAL ── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);align-items:center;justify-content:center;z-index:200;padding:1rem;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--navy);border:1px solid var(--border);border-radius:2px;padding:2.5rem;width:100%;max-width:460px;box-shadow:0 32px 80px rgba(0,0,0,.6);animation:fadeUp .25s ease both;margin:auto}
+    .modal h2{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--gold);margin-bottom:1.5rem}
+    .modal-section{font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.8rem;margin-top:1.5rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+    .modal-actions{display:flex;gap:.75rem;margin-top:1.5rem}
+    .modal-actions button{flex:1;margin-top:0}
+    .modal-msg{font-size:.83rem;margin-top:.6rem}
+    .modal-msg.ok{color:var(--green-l)}.modal-msg.err{color:#e07080}
+    /* ── THEME PICKER ── */
+    .theme-swatches{display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:1rem}
+    .theme-swatch{width:42px;height:42px;border-radius:3px;border:2px solid transparent;cursor:pointer;transition:border-color .18s,transform .15s;position:relative;flex-shrink:0}
+    .theme-swatch:hover{transform:scale(1.1)}
+    .theme-swatch.active{border-color:var(--gold)}
+    .theme-swatch.active::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.9rem;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+    .theme-upload-row{display:flex;align-items:center;gap:.75rem;margin-top:.5rem}
+    .theme-upload-label{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .9rem;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:1px;cursor:pointer;transition:all .2s}
+    .theme-upload-label:hover{border-color:var(--gold);color:var(--gold)}
+    .theme-upload-hint{font-size:.72rem;color:var(--muted)}
+    #theme-file-input{display:none}
+    .theme-img-preview{width:100%;height:80px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-top:.6rem;display:none}
+    .theme-img-preview.visible{display:block}
+    .theme-remove-img{font-size:.72rem;color:var(--maroon-l);cursor:pointer;text-decoration:underline;display:none;margin-top:.3rem}
+    .theme-remove-img.visible{display:inline}
+    /* ── TOAST ── */
+    .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--navy);border:1px solid var(--border);color:var(--cream);padding:.75rem 1.5rem;border-radius:2px;font-size:.84rem;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:300}
+    .toast.show{opacity:1}
+    /* ── LOADING ── */
+    .loading-screen{display:flex;align-items:center;justify-content:center;height:100vh}
+    .loading-screen p{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold);letter-spacing:.12em}
+    /* ── LAYOUT ── */
+    .app-layout{display:flex;min-height:calc(100vh - 60px)}
+    .sidebar{width:220px;flex-shrink:0;background:var(--navy);border-right:1px solid var(--border);padding:1.8rem 0;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto}
+    .sidebar-title{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--gold);letter-spacing:.06em;padding:0 1.4rem .9rem;border-bottom:1px solid var(--border);margin-bottom:.8rem}
+    .peer-item{padding:.65rem 1.4rem;cursor:pointer;transition:background .15s;border-left:2px solid transparent}
+    .peer-item:hover{background:rgba(201,168,76,.06)}
+    .peer-item.active{background:rgba(201,168,76,.1);border-left-color:var(--gold)}
+    .peer-name{font-size:.83rem;color:var(--cream);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.5rem}
+    .peer-item.you .peer-name{color:var(--gold)}
+    .peer-progress-wrap{background:rgba(255,255,255,.08);border-radius:999px;height:5px;overflow:hidden}
+    .peer-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--green-l));transition:width .6s ease}
+    .peer-item.you .peer-progress-fill{background:linear-gradient(90deg,#b8860b,var(--gold-l))}
+    .main-content{flex:1;min-width:0}
+    .main{max-width:900px;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+    /* ── VIEW BANNER ── */
+    .view-banner{display:none;background:rgba(201,168,76,.09);border:1px solid rgba(201,168,76,.25);border-radius:2px;padding:.75rem 1.2rem;margin-bottom:1.5rem;font-size:.82rem;color:var(--gold);letter-spacing:.06em;align-items:center;justify-content:space-between;gap:1rem}
+    .view-banner.active{display:flex}
+    .view-banner button{background:transparent;border:1px solid rgba(201,168,76,.4);color:var(--gold);padding:.3rem .85rem;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;border-radius:1px;cursor:pointer;white-space:nowrap;transition:all .2s}
+    .view-banner button:hover{background:rgba(201,168,76,.15)}
+    /* ── FORGOT LINK ── */
+    .forgot-link{text-align:right;margin-top:-.5rem;margin-bottom:1rem;font-size:.8rem}
+    .forgot-link span{color:var(--muted);cursor:pointer;transition:color .2s;text-decoration:underline;text-underline-offset:2px}
+    .forgot-link span:hover{color:var(--gold)}
+    /* ── RESPONSIVE ── */
+    @media(max-width:760px){
+      .app-layout{flex-direction:column}
+      .sidebar{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--border);padding:1rem 0;display:flex;flex-direction:column}
+      .sidebar-title{padding-bottom:.7rem}
+      .sidebar-peers{display:flex;flex-wrap:nowrap;overflow-x:auto;padding:0 .8rem;gap:.4rem}
+      .peer-item{padding:.5rem .9rem;border-left:none;border-bottom:2px solid transparent;min-width:120px;border-radius:4px}
+      .peer-item.active{border-left-color:transparent;border-bottom-color:var(--gold);background:rgba(201,168,76,.1)}
+    }
+    @media(max-width:600px){
+      .header{padding:1rem}
+      .header-user{display:none}
+      .main{padding:1.5rem .75rem 4rem}
+      .stat{padding:1rem .5rem}.stat-num{font-size:2rem}
+      .goal-bar{flex-direction:column;gap:1rem;align-items:flex-start}
+      .progress-wrap{width:100%}
+      .cal-cell{font-size:.75rem}
+      .legend{gap:1rem}
+      .howto{padding:1.2rem}
+      .auth-card{padding:2rem 1.5rem}
+      .dow-picker{gap:.35rem}
+      .dow-btn{min-width:36px;padding:.65rem .25rem;font-size:.63rem}
+    }
+  </style>
 </head>
 <body>
-<div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef, useMemo, useCallback } = React;
+<!-- LOADING -->
+<div id="screen-loading" class="screen active">
+  <div class="loading-screen"><p>Loading…</p></div>
+</div>
 
+<!-- LOGIN -->
+<div id="screen-login" class="screen app-bg">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><h1>WFO Tracker</h1><div class="auth-divider"></div><p>Work · Presence · Balance</p></div>
+      <div id="login-msg" class="auth-msg" style="display:none"></div>
+      <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@company.com" autocomplete="email"/></div>
+      <div class="field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/></div>
+      <div class="forgot-link"><span onclick="showScreen('forgot')">Forgot password?</span></div>
+      <button class="btn-primary" id="login-btn">Sign In</button>
+      <div class="auth-switch">New here? <span onclick="showScreen('register')">Create an account</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="screen-register" class="screen app-bg">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><h1>WFO Tracker</h1><div class="auth-divider"></div><p>Create Your Account</p></div>
+      <div id="reg-msg" class="auth-msg" style="display:none"></div>
+      <div class="field"><label>Username</label><input type="text" id="reg-username" placeholder="Your display name"/></div>
+      <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@company.com" autocomplete="email"/></div>
+      <div class="field"><label>Password <span style="text-transform:none;letter-spacing:0;font-size:.85em">(min. 6 characters)</span></label><input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password"/></div>
+      <button class="btn-primary" id="reg-btn">Create Account</button>
+      <div class="auth-switch">Already have an account? <span onclick="showScreen('login')">Sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD -->
+<div id="screen-forgot" class="screen app-bg">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><h1>WFO Tracker</h1><div class="auth-divider"></div><p>Reset Your Password</p></div>
+      <div id="forgot-msg" class="auth-msg" style="display:none"></div>
+      <div class="field"><label>Email Address</label><input type="email" id="forgot-email" placeholder="you@company.com" autocomplete="email"/></div>
+      <button class="btn-primary" id="forgot-btn">Send Reset Email</button>
+      <div class="auth-switch">Remembered it? <span onclick="showScreen('login')">Back to sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app" class="screen app-bg">
+  <header class="header">
+    <div class="header-logo">WFO <span>Tracker</span></div>
+    <div class="header-right">
+      <span class="header-user" id="header-username"></span>
+      <button class="btn-sm" onclick="openSettings()">Settings</button>
+      <button class="btn-sm danger" onclick="doSignOut()">Sign Out</button>
+    </div>
+  </header>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-title">12 Days a Slave</div>
+      <div class="sidebar-peers" id="sidebar-peers"></div>
+    </aside>
+    <div class="main-content">
+      <div class="main">
+        <!-- VIEW BANNER -->
+        <div class="view-banner" id="view-banner">
+          <span>Viewing <strong id="view-banner-name"></strong>'s calendar — read only</span>
+          <button onclick="returnToOwnCalendar()">← Back to my calendar</button>
+        </div>
+        <!-- MY STATS -->
+        <div class="stats-bar" id="my-stats-bar">
+          <div class="stat"><div class="stat-num gold" id="stat-goal">0</div><div class="stat-label">Monthly Goal</div></div>
+          <div class="stat"><div class="stat-num green" id="stat-done">0</div><div class="stat-label">Days Done</div></div>
+          <div class="stat"><div class="stat-num maroon" id="stat-pending">0</div><div class="stat-label">Days Pending</div></div>
+        </div>
+        <!-- PEER STATS -->
+        <div class="peer-stats-bar" id="peer-stats-bar">
+          <div class="peer-stat"><div class="peer-stat-num gold" id="peer-stat-goal">0</div><div class="peer-stat-label">Monthly Goal</div></div>
+          <div class="peer-stat"><div class="peer-stat-num green" id="peer-stat-done">0</div><div class="peer-stat-label">Days Done</div></div>
+          <div class="peer-stat"><div class="peer-stat-num maroon" id="peer-stat-pending">0</div><div class="peer-stat-label">Days Pending</div></div>
+        </div>
+        <!-- GOAL BAR -->
+        <div class="goal-bar" id="goal-bar-wrap">
+          <div class="goal-bar-left">
+            Monthly Target &nbsp;·&nbsp; <strong id="goal-display">0</strong> days
+            <div class="progress-wrap"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+            <span style="font-size:.68rem;display:block;margin-top:.1rem" id="pct-label">0% complete this month</span>
+            <span style="font-size:.75rem;display:block;margin-top:.5rem;color:var(--gold);font-style:italic" id="nudge-msg"></span>
+          </div>
+          <div class="goal-controls" id="goal-controls">
+            <button class="btn-sm" onclick="startEditGoal()">Edit Goal</button>
+          </div>
+        </div>
+        <!-- CALENDAR -->
+        <div class="cal-header">
+          <div class="cal-title" id="cal-title"></div>
+          <div class="cal-nav">
+            <button onclick="changeMonth(-1)">&#8249;</button>
+            <button onclick="changeMonth(+1)">&#8250;</button>
+            <button id="weekoff-btn" onclick="openWeekOff()">Week-Off Days</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <!-- LEGEND -->
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot none"></div>Not Selected</div>
+          <div class="legend-item"><div class="legend-dot planned"></div>Planned WFO</div>
+          <div class="legend-item"><div class="legend-dot done"></div>Attended</div>
+          <div class="legend-item"><div class="legend-dot weekoff"></div>Week Off</div>
+        </div>
+        <!-- HOW TO -->
+        <div class="howto">
+          <h3>How to Use</h3>
+          <p>
+            <strong style="color:#f5f0e8">Click once</strong> on a date to mark it planned (maroon).
+            <strong style="color:#f5f0e8">Click again</strong> to confirm attendance (green).
+            <strong style="color:#f5f0e8">Click a third time</strong> to clear it.
+            Use <strong style="color:#f5f0e8">Week-Off Days</strong> to grey out days off for the current month (e.g. Sat &amp; Sun in June).
+            Customise your background in <strong style="color:#f5f0e8">Settings</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WEEK-OFF MODAL -->
+<div class="modal-overlay" id="weekoff-modal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Week-Off Days</h2>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:1.4rem;line-height:1.6">
+      Select the days of the week that are off <strong id="weekoff-modal-month"></strong>. Those dates will appear greyed out on the calendar and won't count towards your goal.
+    </p>
+    <div class="dow-picker" id="dow-picker"></div>
+    <div class="dow-preview" id="dow-preview"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="weekoff-save-btn" onclick="saveWeekOff()">Save</button>
+      <button class="btn-ghost" onclick="closeWeekOff()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:480px">
+    <h2>Account Settings</h2>
+    <div class="modal-section">Profile</div>
+    <div class="field"><label>Username</label><input type="text" id="s-username"/></div>
+    <div class="field"><label>Email Address</label><input type="email" id="s-email"/></div>
+    <div class="field"><label>New Password <span style="text-transform:none;letter-spacing:0">(leave blank to keep)</span></label><input type="password" id="s-password" placeholder="••••••••"/></div>
+    <div class="modal-section">Background Theme</div>
+    <div class="theme-swatches" id="theme-swatches"></div>
+    <div class="theme-upload-row">
+      <label class="theme-upload-label" for="theme-file-input">&#8679; Upload Image</label>
+      <span class="theme-upload-hint">JPG / PNG, max 2 MB</span>
+    </div>
+    <input type="file" id="theme-file-input" accept="image/jpeg,image/png,image/webp"/>
+    <img id="theme-img-preview" class="theme-img-preview" alt="Background preview"/>
+    <div id="theme-remove-img" class="theme-remove-img" onclick="removeCustomImage()">&#10005; Remove custom image</div>
+    <p class="modal-msg" id="settings-msg"></p>
+    <div class="modal-actions">
+      <button class="btn-primary" id="settings-save-btn" onclick="saveSettings()">Save Changes</button>
+      <button class="btn-ghost" onclick="closeSettings()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
 const firebaseConfig = {
-  apiKey: "AIzaSyCKz9SqPlLO1-S8u_wuBQyOmBteryBpGpY",
-  authDomain: "quality-team-dashboard-1e7f9.firebaseapp.com",
-  projectId: "quality-team-dashboard-1e7f9",
-  storageBucket: "quality-team-dashboard-1e7f9.firebasestorage.app",
-  messagingSenderId: "566190883707",
-  appId: "1:566190883707:web:e5ed128f985e37f9bcb3de"
+  apiKey:            "AIzaSyBQ_jsahBIcT97acTsBOY9ZNfgnXmXcLoA",
+  authDomain:        "wfo-tracker-e8e6d.firebaseapp.com",
+  projectId:         "wfo-tracker-e8e6d",
+  storageBucket:     "wfo-tracker-e8e6d.firebasestorage.app",
+  messagingSenderId: "639734883785",
+  appId:             "1:639734883785:web:a4e1155d1cbf864d9ff418",
 };
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-const FieldValue = firebase.firestore.FieldValue;
-const Timestamp = firebase.firestore.Timestamp;
+import { initializeApp }                          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword,
+         signInWithEmailAndPassword, onAuthStateChanged,
+         signOut, updateEmail, updatePassword,
+         sendPasswordResetEmail }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc,
+         setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* The very first person to sign up becomes admin automatically.
-   This email is a safety net: this address is ALWAYS treated as admin
-   even if the users collection is ever reset. Change it to your own email. */
-const BOOTSTRAP_ADMIN_EMAIL = "michaelmoses.enago@gmail.com";
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-/* =========================================================================
-   ICONS (tiny inline SVG set, no external icon library needed)
-   ========================================================================= */
-const Icon = ({ name, size = 16 }) => {
-  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" };
-  const paths = {
-    home: <><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/></>,
-    link: <><path d="M9 17H7a5 5 0 0 1 0-10h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><path d="M8 12h8"/></>,
-    updates: <><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><circle cx="19" cy="17" r="2.3"/></>,
-    calendar: <><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></>,
-    settings: <><circle cx="12" cy="12" r="2.8"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.1a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3H10a1.7 1.7 0 0 0 1-1.6V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9V10a1.7 1.7 0 0 0 1.6 1H20a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.6 1Z"/></>,
-    plus: <path d="M12 5v14M5 12h14"/>,
-    search: <><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.4-4.4"/></>,
-    external: <><path d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></>,
-    dots: <><circle cx="12" cy="6" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="18" r="1.3"/></>,
-    check: <path d="M5 13l4 4L19 7"/>,
-    x: <path d="M18 6 6 18M6 6l12 12"/>,
-    chevronL: <path d="M15 18l-6-6 6-6"/>,
-    chevronR: <path d="M9 18l6-6-6-6"/>,
-    menu: <><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
-    users: <><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16.5 5.5a3.2 3.2 0 0 1 0 6.2"/><path d="M21.5 20a6 6 0 0 0-5-5.9"/></>,
-    activity: <path d="M3 12h4l2.5-7L14 19l2.5-7H21"/>,
-    edit: <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></>,
-    trash: <><path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></>,
-    logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></>,
-    key: <><circle cx="7.5" cy="14.5" r="4.5"/><path d="M11 11l7-7m0 0h4m-4 0v4"/></>,
-    mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
-    file: <><path d="M8 3h6l5 5v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/></>,
-    clock: <><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></>,
-    dot: <circle cx="12" cy="12" r="4"/>,
-  };
-  return <svg {...p}>{paths[name] || null}</svg>;
-};
+// ── CONSTANTS ────────────────────────────────────────────────────────
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DOW    = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-/* =========================================================================
-   HELPERS
-   ========================================================================= */
-function initials(name){
-  if(!name) return "?";
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0]||"") + (parts[1]?.[0]||"")).toUpperCase();
-}
-function fmtDate(d){
-  if(!d) return "";
-  const date = d instanceof Date ? d : new Date(d);
-  return date.toLocaleDateString(undefined,{ month:"long", day:"numeric", year:"numeric" });
-}
-function fmtDateShort(d){
-  const date = d instanceof Date ? d : new Date(d);
-  return date.toLocaleDateString(undefined,{ month:"short", day:"numeric" });
-}
-function fmtTime(d){
-  if(!d) return "";
-  const date = d instanceof Date ? d : new Date(d);
-  return date.toLocaleTimeString(undefined,{ hour:"numeric", minute:"2-digit" });
-}
-function toDateInput(d){
-  const date = d instanceof Date ? d : new Date(d);
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,"0");
-  const day = String(date.getDate()).padStart(2,"0");
-  return `${y}-${m}-${day}`;
-}
-function tsToDate(ts){
-  if(!ts) return null;
-  if(ts instanceof Date) return ts;
-  if(ts.toDate) return ts.toDate();
-  return new Date(ts);
-}
-function sameDay(a,b){
-  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
-}
-function isValidEmail(e){
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-}
-function isStrongPassword(p){
-  return p && p.length >= 8;
-}
-function genId(){
-  return Math.random().toString(36).slice(2,10) + Date.now().toString(36);
-}
-
-/* Toast system */
-const ToastCtx = React.createContext(null);
-function ToastProvider({ children }){
-  const [toasts, setToasts] = useState([]);
-  const push = useCallback((msg, type="ok") => {
-    const id = genId();
-    setToasts(t => [...t, { id, msg, type }]);
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3200);
-  }, []);
-  return (
-    <ToastCtx.Provider value={push}>
-      {children}
-      <div className="toast-stack">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast ${t.type === "err" ? "err" : "ok"}`}>
-            <Icon name={t.type === "err" ? "x" : "check"} size={14} />
-            {t.msg}
-          </div>
-        ))}
-      </div>
-    </ToastCtx.Provider>
-  );
-}
-function useToast(){ return useContextSafe(); }
-function useContextSafe(){ return React.useContext(ToastCtx); }
-
-/* Confirm dialog (promise-style via state) */
-function useConfirm(){
-  const [state, setState] = useState(null); // {title, body, danger, resolve}
-  const confirm = useCallback((title, body, danger=true) => {
-    return new Promise(resolve => {
-      setState({ title, body, danger, resolve });
-    });
-  }, []);
-  const node = state ? (
-    <div className="modal-overlay" onClick={() => { state.resolve(false); setState(null); }}>
-      <div className="modal confirm" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
-        <div className="modal-head"><h3>{state.title}</h3></div>
-        <div className="modal-body">{state.body}</div>
-        <div className="modal-foot">
-          <button className="btn btn-secondary" onClick={() => { state.resolve(false); setState(null); }}>Cancel</button>
-          <button className={state.danger ? "btn btn-danger" : "btn btn-primary"} onClick={() => { state.resolve(true); setState(null); }}>
-            {state.danger ? "Delete" : "Confirm"}
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null;
-  return [confirm, node];
-}
-
-/* =========================================================================
-   AUTH SCREENS
-   ========================================================================= */
-function AuthScreen(){
-  const [mode, setMode] = useState("signin"); // signin | signup | forgot
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [error, setError] = useState("");
-  const [okMsg, setOkMsg] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const resetMsgs = () => { setError(""); setOkMsg(""); };
-
-  const handleSignIn = async (e) => {
-    e.preventDefault(); resetMsgs();
-    if(!isValidEmail(email)){ setError("Enter a valid email address."); return; }
-    if(!password){ setError("Enter your password."); return; }
-    setBusy(true);
-    try{
-      await auth.signInWithEmailAndPassword(email, password);
-    }catch(err){
-      if(err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") setError("Incorrect email or password.");
-      else if(err.code === "auth/user-not-found") setError("No account found with that email.");
-      else if(err.code === "auth/too-many-requests") setError("Too many attempts. Try again in a few minutes.");
-      else setError(err.message);
-    }
-    setBusy(false);
-  };
-
-  const handleSignUp = async (e) => {
-    e.preventDefault(); resetMsgs();
-    if(!fullName.trim()){ setError("Enter your full name."); return; }
-    if(!isValidEmail(email)){ setError("Enter a valid email address."); return; }
-    if(!isStrongPassword(password)){ setError("Password must be at least 8 characters."); return; }
-    if(password !== confirmPassword){ setError("Passwords do not match."); return; }
-    setBusy(true);
-    try{
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
-      await cred.user.updateProfile({ displayName: fullName.trim() });
-
-      // Determine admin status: first-ever user, or the bootstrap admin email
-      const usersSnap = await db.collection("users").limit(1).get();
-      const isFirstUser = usersSnap.empty;
-      const isBootstrap = email.trim().toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
-      const role = (isFirstUser || isBootstrap) ? "admin" : "user";
-
-      await db.collection("users").doc(cred.user.uid).set({
-        fullName: fullName.trim(),
-        email: email.trim(),
-        role,
-        status: "active",
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    }catch(err){
-      if(err.code === "auth/email-already-in-use") setError("An account with this email already exists.");
-      else if(err.code === "auth/invalid-email") setError("Enter a valid email address.");
-      else if(err.code === "auth/weak-password") setError("Password is too weak. Use at least 8 characters.");
-      else setError(err.message);
-    }
-    setBusy(false);
-  };
-
-  const handleForgot = async (e) => {
-    e.preventDefault(); resetMsgs();
-    if(!isValidEmail(email)){ setError("Enter a valid email address."); return; }
-    setBusy(true);
-    try{
-      await auth.sendPasswordResetEmail(email);
-      setOkMsg("Password reset email sent. Check your inbox.");
-    }catch(err){
-      if(err.code === "auth/user-not-found") setError("No account found with that email.");
-      else setError(err.message);
-    }
-    setBusy(false);
-  };
-
-  return (
-    <div className="auth-wrap">
-      <div className="auth-card">
-        <div className="auth-brand">
-          <div className="mark">Quality Team Dashboard</div>
-          <div className="sub">Internal workspace for quality &amp; operations</div>
-        </div>
-        <div className="auth-box">
-          {mode === "signin" && (
-            <>
-              <h2>Sign in</h2>
-              <div className="lead">Welcome back. Enter your details to continue.</div>
-              {error && <div className="banner banner-err">{error}</div>}
-              {okMsg && <div className="banner banner-ok">{okMsg}</div>}
-              <form onSubmit={handleSignIn}>
-                <div className="field">
-                  <label>Email address</label>
-                  <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
-                </div>
-                <div className="field">
-                  <label>Password</label>
-                  <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-                </div>
-                <button type="button" className="btn-ghost" style={{fontSize:12.5,color:"var(--accent)",marginBottom:16,padding:0,background:"none",border:"none",fontWeight:600}} onClick={()=>{setMode("forgot");resetMsgs();}}>Forgot password?</button>
-                <button className="btn btn-primary" style={{width:"100%",justifyContent:"center",padding:"10px"}} disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
-              </form>
-              <div className="auth-switch">No account yet? <button onClick={()=>{setMode("signup");resetMsgs();}}>Sign up</button></div>
-            </>
-          )}
-          {mode === "signup" && (
-            <>
-              <h2>Create your account</h2>
-              <div className="lead">Set up access to the team dashboard.</div>
-              {error && <div className="banner banner-err">{error}</div>}
-              <form onSubmit={handleSignUp}>
-                <div className="field">
-                  <label>Full name</label>
-                  <input type="text" value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Michael Moses" autoComplete="name" />
-                </div>
-                <div className="field">
-                  <label>Email address</label>
-                  <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
-                </div>
-                <div className="field-row">
-                  <div className="field">
-                    <label>Password</label>
-                    <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" />
-                  </div>
-                  <div className="field">
-                    <label>Confirm password</label>
-                    <input type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Repeat password" autoComplete="new-password" />
-                  </div>
-                </div>
-                <button className="btn btn-primary" style={{width:"100%",justifyContent:"center",padding:"10px",marginTop:4}} disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
-              </form>
-              <div className="auth-switch">Already have an account? <button onClick={()=>{setMode("signin");resetMsgs();}}>Sign in</button></div>
-            </>
-          )}
-          {mode === "forgot" && (
-            <>
-              <h2>Reset your password</h2>
-              <div className="lead">We'll email you a link to reset it.</div>
-              {error && <div className="banner banner-err">{error}</div>}
-              {okMsg && <div className="banner banner-ok">{okMsg}</div>}
-              <form onSubmit={handleForgot}>
-                <div className="field">
-                  <label>Email address</label>
-                  <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
-                </div>
-                <button className="btn btn-primary" style={{width:"100%",justifyContent:"center",padding:"10px"}} disabled={busy}>{busy ? "Sending…" : "Send reset link"}</button>
-              </form>
-              <div className="auth-switch"><button onClick={()=>{setMode("signin");resetMsgs();}}>Back to sign in</button></div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* Change password (used inside the app, e.g. from profile menu) */
-function ChangePasswordModal({ onClose }){
-  const toast = useToast();
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setError("");
-    if(!isStrongPassword(newPw)){ setError("New password must be at least 8 characters."); return; }
-    if(newPw !== confirmPw){ setError("New passwords do not match."); return; }
-    setBusy(true);
-    try{
-      const user = auth.currentUser;
-      const cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPw);
-      await user.reauthenticateWithCredential(cred);
-      await user.updatePassword(newPw);
-      toast("Password changed successfully.");
-      onClose();
-    }catch(err){
-      if(err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") setError("Current password is incorrect.");
-      else setError(err.message);
-    }
-    setBusy(false);
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-head"><h3>Change password</h3><button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x" size={16}/></button></div>
-        <form onSubmit={submit}>
-          <div className="modal-body">
-            {error && <div className="banner banner-err">{error}</div>}
-            <div className="field">
-              <label>Current password</label>
-              <input type="password" value={currentPw} onChange={e=>setCurrentPw(e.target.value)} autoComplete="current-password" />
-            </div>
-            <div className="field">
-              <label>New password</label>
-              <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} autoComplete="new-password" />
-            </div>
-            <div className="field">
-              <label>Confirm new password</label>
-              <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} autoComplete="new-password" />
-            </div>
-          </div>
-          <div className="modal-foot">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : "Change password"}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================================
-   APP DATA CONTEXT — central Firestore subscriptions
-   ========================================================================= */
-const DataCtx = React.createContext(null);
-function useData(){ return React.useContext(DataCtx); }
-
-function DataProvider({ user, profile, children }){
-  const [links, setLinks] = useState([]);
-  const [updates, setUpdates] = useState([]);
-  const [deadlines, setDeadlines] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [activity, setActivity] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubs = [];
-    let pending = 5;
-    const done = () => { pending -= 1; if(pending <= 0) setLoading(false); };
-
-    unsubs.push(db.collection("links").where("deleted","==",false).orderBy("createdAt","desc")
-      .onSnapshot(snap => { setLinks(snap.docs.map(d => ({ id:d.id, ...d.data() }))); done(); },
-      () => done()));
-
-    unsubs.push(db.collection("scrumUpdates").where("deleted","==",false).orderBy("date","desc").orderBy("createdAt","desc")
-      .onSnapshot(snap => { setUpdates(snap.docs.map(d => ({ id:d.id, ...d.data() }))); done(); },
-      () => done()));
-
-    unsubs.push(db.collection("deadlines").where("deleted","==",false).orderBy("dueDate","asc")
-      .onSnapshot(snap => { setDeadlines(snap.docs.map(d => ({ id:d.id, ...d.data() }))); done(); },
-      () => done()));
-
-    unsubs.push(db.collection("users").orderBy("createdAt","asc")
-      .onSnapshot(snap => { setUsers(snap.docs.map(d => ({ id:d.id, ...d.data() }))); done(); },
-      () => done()));
-
-    unsubs.push(db.collection("activity").orderBy("createdAt","desc").limit(40)
-      .onSnapshot(snap => { setActivity(snap.docs.map(d => ({ id:d.id, ...d.data() }))); done(); },
-      () => done()));
-
-    return () => unsubs.forEach(u => u && u());
-  }, []);
-
-  const logActivity = useCallback(async (text) => {
-    try{
-      await db.collection("activity").add({
-        text,
-        userId: user.uid,
-        userName: profile?.fullName || user.displayName || "Someone",
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    }catch(e){ /* non-critical */ }
-  }, [user, profile]);
-
-  const value = { links, updates, deadlines, users, activity, loading, logActivity };
-  return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;
-}
-
-/* =========================================================================
-   SIDEBAR + SHELL
-   ========================================================================= */
-const NAV_ITEMS = [
-  { key:"dashboard", label:"Dashboard", icon:"home" },
-  { key:"links", label:"Links", icon:"link" },
-  { key:"updates", label:"Scrum Updates", icon:"updates" },
-  { key:"deadlines", label:"Deadlines", icon:"calendar" },
+const BG_THEMES = [
+  { id:'default',  label:'Midnight Navy',
+    style:'radial-gradient(ellipse at 18% 0%,rgba(201,168,76,.07) 0%,transparent 55%),radial-gradient(ellipse at 82% 100%,rgba(122,31,46,.09) 0%,transparent 55%),#0d1420',
+    swatch:'#0d1420' },
+  { id:'forest',   label:'Deep Forest',
+    style:'radial-gradient(ellipse at 20% 10%,rgba(30,107,74,.14) 0%,transparent 55%),radial-gradient(ellipse at 80% 90%,rgba(10,40,20,.5) 0%,transparent 55%),#0a1a12',
+    swatch:'#0a1a12' },
+  { id:'wine',     label:'Dark Wine',
+    style:'radial-gradient(ellipse at 15% 5%,rgba(122,31,46,.18) 0%,transparent 55%),radial-gradient(ellipse at 85% 95%,rgba(80,10,25,.3) 0%,transparent 55%),#180d12',
+    swatch:'#180d12' },
+  { id:'slate',    label:'Slate',
+    style:'radial-gradient(ellipse at 50% 0%,rgba(100,120,180,.08) 0%,transparent 60%),#111620',
+    swatch:'#111620' },
+  { id:'obsidian', label:'Obsidian',
+    style:'radial-gradient(ellipse at 30% 20%,rgba(80,80,100,.1) 0%,transparent 50%),#080808',
+    swatch:'#080808' },
+  { id:'dusk',     label:'Dusk Purple',
+    style:'radial-gradient(ellipse at 20% 0%,rgba(120,80,180,.1) 0%,transparent 55%),radial-gradient(ellipse at 80% 100%,rgba(60,20,100,.12) 0%,transparent 55%),#110d1a',
+    swatch:'#110d1a' },
 ];
 
-function Sidebar({ page, setPage, profile, user, sidebarOpen, setSidebarOpen, onOpenChangePw }){
-  const [menuOpen, setMenuOpen] = useState(false);
-  const isAdmin = profile?.role === "admin";
-  const items = isAdmin ? [...NAV_ITEMS, { key:"admin", label:"Admin", icon:"settings" }] : NAV_ITEMS;
+// ── STATE ────────────────────────────────────────────────────────────
+let currentUser  = null;
+let userProfile  = { username:'', wfoGoal:12, monthGoals:{}, weekOff:{}, bgTheme:'default' };
+let dayData      = {};
+const today      = new Date();
+let viewYear     = today.getFullYear();
+let viewMonth    = today.getMonth();
+let viewingPeer  = null;
+let allPeers     = [];
+let _weekOffDraft = [];
+let _pendingImageData = null;
 
-  const go = (key) => { setPage(key); setSidebarOpen(false); };
-
-  return (
-    <>
-      {sidebarOpen && <div className="sidebar-overlay" onClick={()=>setSidebarOpen(false)} />}
-      <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-brand">
-          <div className="mark">Quality Team Dashboard</div>
-          <div className="sub">Crimson Interactive · Quality Ops</div>
-        </div>
-        <div className="sidebar-nav">
-          {items.map(it => (
-            <div key={it.key} className={`nav-item ${page===it.key ? "active":""}`} onClick={()=>go(it.key)} role="button" tabIndex={0}>
-              <Icon name={it.icon} size={16} />
-              <span>{it.label}</span>
-            </div>
-          ))}
-        </div>
-        <div className="sidebar-foot">
-          {menuOpen && (
-            <div className="profile-menu">
-              <button onClick={()=>{ onOpenChangePw(); setMenuOpen(false); }}><Icon name="key" size={13}/> &nbsp;Change password</button>
-              <button onClick={()=>{ auth.signOut(); }}><Icon name="logout" size={13}/> &nbsp;Log out</button>
-            </div>
-          )}
-          <div className="profile-row" onClick={()=>setMenuOpen(m=>!m)}>
-            <div className="avatar">{initials(profile?.fullName || user.displayName)}</div>
-            <div style={{minWidth:0,flex:1}}>
-              <div className="profile-name">{profile?.fullName || user.displayName || user.email}</div>
-              <div className="profile-role">{isAdmin ? "Admin" : "Team member"}</div>
-            </div>
-            <Icon name="dots" size={14} />
-          </div>
-        </div>
-      </div>
-    </>
-  );
+// ── HELPERS ──────────────────────────────────────────────────────────
+window.showScreen = n => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+};
+window._toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
 }
-
-function GlobalSearch(){
-  const data = useData();
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const onClick = (e) => { if(ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
-
-  const results = useMemo(() => {
-    if(!q.trim()) return [];
-    const t = q.trim().toLowerCase();
-    const r = [];
-    data.links.forEach(l => { if((l.name||"").toLowerCase().includes(t) || (l.description||"").toLowerCase().includes(t)) r.push({ type:"Link", title:l.name }); });
-    data.updates.forEach(u => { if((u.text||"").toLowerCase().includes(t)) r.push({ type:"Scrum Update", title: (u.text||"").slice(0,60) }); });
-    data.deadlines.forEach(d => { if((d.title||"").toLowerCase().includes(t)) r.push({ type:"Deadline", title:d.title }); });
-    return r.slice(0,8);
-  }, [q, data]);
-
-  return (
-    <div className="topbar-search" ref={ref}>
-      <div className="search-box">
-        <span className="ic"><Icon name="search" size={14}/></span>
-        <input placeholder="Search everything…" value={q} onChange={e=>{setQ(e.target.value); setOpen(true);}} onFocus={()=>setOpen(true)} />
-      </div>
-      {open && q.trim() && (
-        <div className="global-search-results">
-          {results.length === 0 ? (
-            <div style={{padding:"14px",color:"var(--muted)",fontSize:13}}>No results for "{q}"</div>
-          ) : results.map((r,i) => (
-            <div className="gsr-item" key={i}>
-              <div className="gsr-title">{r.title}</div>
-              <div className="gsr-type">{r.type}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function monthPrefix() { return viewYear + '-' + String(viewMonth+1).padStart(2,'0'); }
+function dateKey(y,m,d) { return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function currentMonthGoal() {
+  const k = monthPrefix(), g = userProfile.monthGoals || {};
+  return g[k] !== undefined ? g[k] : (userProfile.wfoGoal || 0);
 }
-
-/* =========================================================================
-   DASHBOARD / HOME
-   ========================================================================= */
-function DashboardPage({ setPage, openAdd }){
-  const data = useData();
-  const recentUpdates = data.updates.slice(0,4);
-  const upcomingDeadlines = data.deadlines.filter(d => d.status !== "completed").sort((a,b)=> tsToDate(a.dueDate) - tsToDate(b.dueDate)).slice(0,5);
-  const recentLinks = data.links.slice(0,4);
-  const recentActivity = data.activity.slice(0,6);
-
-  const pendingCount = data.deadlines.filter(d=>d.status!=="completed").length;
-  const todayUpdatesCount = data.updates.filter(u => { const d = tsToDate(u.date); return d && sameDay(d, new Date()); }).length;
-
-  return (
-    <div>
-      <div className="quick-actions">
-        <button className="btn btn-primary" onClick={()=>openAdd("link")}><Icon name="plus" size={14}/> Add Link</button>
-        <button className="btn btn-primary" onClick={()=>openAdd("update")}><Icon name="plus" size={14}/> Add Scrum Update</button>
-        <button className="btn btn-primary" onClick={()=>openAdd("deadline")}><Icon name="plus" size={14}/> Add Deadline</button>
-      </div>
-
-      <div className="grid-cards">
-        <div className="card card-pad">
-          <div className="stat-icon" style={{background:"var(--accent-tint)",color:"var(--accent-dark)"}}><Icon name="calendar" size={16}/></div>
-          <div className="stat-num">{pendingCount}</div>
-          <div className="stat-label">Pending deadlines</div>
-        </div>
-        <div className="card card-pad">
-          <div className="stat-icon" style={{background:"var(--success-tint)",color:"var(--success)"}}><Icon name="updates" size={16}/></div>
-          <div className="stat-num">{todayUpdatesCount}</div>
-          <div className="stat-label">Scrum updates today</div>
-        </div>
-        <div className="card card-pad">
-          <div className="stat-icon" style={{background:"var(--warn-tint)",color:"var(--warn)"}}><Icon name="link" size={16}/></div>
-          <div className="stat-num">{data.links.length}</div>
-          <div className="stat-label">Shared resources</div>
-        </div>
-        <div className="card card-pad">
-          <div className="stat-icon" style={{background:"var(--border)",color:"var(--ink-soft)"}}><Icon name="users" size={16}/></div>
-          <div className="stat-num">{data.users.length}</div>
-          <div className="stat-label">Team members</div>
-        </div>
-      </div>
-
-      <div className="grid-2">
-        <div>
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-head"><h3>Recent scrum updates</h3><button className="btn btn-ghost btn-sm" onClick={()=>setPage("updates")}>View all</button></div>
-            <div style={{padding: recentUpdates.length ? "6px 20px" : 0}}>
-              {recentUpdates.length === 0 ? (
-                <div className="empty-state"><div className="glyph">◌</div><div className="t1">No scrum updates yet</div><div className="t2">Post the first update from today's scrum.</div></div>
-              ) : recentUpdates.map(u => (
-                <div key={u.id} className="tl-item">
-                  <div className="tl-avatar">{initials(u.authorName)}</div>
-                  <div className="tl-body">
-                    <div className="tl-meta"><span className="tl-author">{u.authorName}</span><span className="tl-time">{fmtDateShort(tsToDate(u.date))} · {fmtTime(tsToDate(u.createdAt))}</span></div>
-                    <div className="tl-text">{u.text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-head"><h3>Recently added links</h3><button className="btn btn-ghost btn-sm" onClick={()=>setPage("links")}>View all</button></div>
-            <div style={{padding: recentLinks.length ? "6px 20px" : 0}}>
-              {recentLinks.length === 0 ? (
-                <div className="empty-state"><div className="glyph">◌</div><div className="t1">No shared resources yet</div><div className="t2">Add your first team resource.</div></div>
-              ) : recentLinks.map(l => (
-                <div key={l.id} style={{padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div>
-                      <div className="link-row-name">{l.name}</div>
-                      <div className="link-row-desc">Added by {l.createdByName}</div>
-                    </div>
-                    <a className="open-link" href={l.url} target="_blank" rel="noopener noreferrer">Open <Icon name="external" size={12}/></a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-head"><h3>Upcoming deadlines</h3><button className="btn btn-ghost btn-sm" onClick={()=>setPage("deadlines")}>View all</button></div>
-            <div style={{padding: upcomingDeadlines.length ? "4px 0" : 0}}>
-              {upcomingDeadlines.length === 0 ? (
-                <div className="empty-state"><div className="glyph">◌</div><div className="t1">Nothing pending</div><div className="t2">All caught up.</div></div>
-              ) : upcomingDeadlines.map(d => (
-                <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 20px",borderBottom:"1px solid var(--border)"}}>
-                  <div>
-                    <div style={{fontWeight:600,fontSize:13.5}}>{d.title}</div>
-                    <div style={{fontSize:11.5,color:"var(--muted)",marginTop:2}}>Due {fmtDateShort(tsToDate(d.dueDate))} · {d.createdByName}</div>
-                  </div>
-                  <span className="badge badge-pending">Pending</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-head"><h3>Recent activity</h3></div>
-            <div style={{padding:"6px 20px"}}>
-              {recentActivity.length === 0 ? (
-                <div className="empty-state"><div className="glyph">◌</div><div className="t1">No activity yet</div></div>
-              ) : recentActivity.map(a => (
-                <div className="activity-row" key={a.id}>
-                  <div className="activity-dot"></div>
-                  <div className="activity-text">
-                    <div><span className="who">{a.userName}</span> {a.text}</div>
-                    <div className="activity-time">{a.createdAt ? fmtTime(tsToDate(a.createdAt)) + " · " + fmtDateShort(tsToDate(a.createdAt)) : ""}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showMsg(el, text, type) { el.textContent=text; el.className='auth-msg '+type; el.style.display='block'; }
+function setLoading(id, on) {
+  const b=document.getElementById(id); b.disabled=on;
+  if(on){b.dataset.orig=b.textContent;b.textContent='Please wait…';}
+  else b.textContent=b.dataset.orig||'Submit';
 }
-
-/* =========================================================================
-   LINKS PAGE
-   ========================================================================= */
-function LinkFormModal({ onClose, editing, user, profile }){
-  const toast = useToast();
-  const data = useData();
-  const [name, setName] = useState(editing?.name || "");
-  const [description, setDescription] = useState(editing?.description || "");
-  const [url, setUrl] = useState(editing?.url || "");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault(); setError("");
-    if(!name.trim()){ setError("Enter a resource name."); return; }
-    if(!url.trim() || !/^https?:\/\//i.test(url.trim())){ setError("Enter a valid URL starting with http:// or https://"); return; }
-    setBusy(true);
-    try{
-      if(editing){
-        await db.collection("links").doc(editing.id).update({
-          name: name.trim(), description: description.trim(), url: url.trim(),
-          updatedAt: FieldValue.serverTimestamp(), updatedBy: user.uid, updatedByName: profile.fullName,
-        });
-        toast("Changes saved.");
-      }else{
-        await db.collection("links").add({
-          name: name.trim(), description: description.trim(), url: url.trim(),
-          createdBy: user.uid, createdByName: profile.fullName,
-          createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
-          deleted: false,
-        });
-        data.logActivity("added a new link");
-        toast("Link added successfully.");
-      }
-      onClose();
-    }catch(err){ setError(err.message); }
-    setBusy(false);
+function friendlyError(code) {
+  const m={
+    'auth/email-already-in-use':'That email is already registered.',
+    'auth/invalid-email':'Please enter a valid email address.',
+    'auth/weak-password':'Password must be at least 6 characters.',
+    'auth/user-not-found':'No account found with that email.',
+    'auth/wrong-password':'Incorrect password. Please try again.',
+    'auth/invalid-credential':'Incorrect email or password.',
+    'auth/too-many-requests':'Too many attempts. Please wait and try again.',
+    'auth/requires-recent-login':'Please sign out and sign back in to change email/password.',
   };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-head"><h3>{editing ? "Edit link" : "Add link"}</h3><button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x" size={16}/></button></div>
-        <form onSubmit={submit}>
-          <div className="modal-body">
-            {error && <div className="banner banner-err">{error}</div>}
-            <div className="field">
-              <label>Name</label>
-              <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Monthly Complaint Tracker" />
-            </div>
-            <div className="field">
-              <label>Description</label>
-              <textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Tracker for monitoring and closing customer complaints." />
-            </div>
-            <div className="field">
-              <label>URL</label>
-              <input type="url" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://…" />
-            </div>
-          </div>
-          <div className="modal-foot">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : (editing ? "Save changes" : "Add link")}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+  return m[code]||'Something went wrong. Please try again.';
 }
 
-function LinksPage({ user, profile, openAdd, editTarget, setEditTarget }){
-  const data = useData();
-  const toast = useToast();
-  const [confirm, confirmNode] = useConfirm();
-  const [q, setQ] = useState("");
-  const [sort, setSort] = useState("recent");
-  const [menuOpenId, setMenuOpenId] = useState(null);
-  const isAdmin = profile.role === "admin";
+// ── AUTH ─────────────────────────────────────────────────────────────
+const _authTimeout = setTimeout(() => {
+  if (document.getElementById('screen-loading').classList.contains('active')) showScreen('login');
+}, 10000);
 
-  const filtered = useMemo(() => {
-    let arr = [...data.links];
-    if(q.trim()){
-      const t = q.trim().toLowerCase();
-      arr = arr.filter(l => (l.name||"").toLowerCase().includes(t) || (l.description||"").toLowerCase().includes(t) || (l.createdByName||"").toLowerCase().includes(t));
+onAuthStateChanged(auth, async user => {
+  clearTimeout(_authTimeout);
+  if (user) {
+    currentUser = user;
+    await loadProfile();
+    await loadDays();
+    await loadAllPeers();
+    document.getElementById('header-username').textContent = userProfile.username;
+    applyBackground();
+    renderAll();
+    renderSidebar();
+    showScreen('app');
+  } else {
+    currentUser = null;
+    showScreen('login');
+  }
+});
+
+// ── FIRESTORE ────────────────────────────────────────────────────────
+async function loadProfile() {
+  const snap = await getDoc(doc(db,'users',currentUser.uid));
+  const data = snap.exists() ? snap.data() : { username:'User', wfoGoal:12 };
+  userProfile = { monthGoals:{}, weekOff:{}, bgTheme:'default', ...data };
+}
+async function loadDays() {
+  const snap = await getDoc(doc(db,'wfo',currentUser.uid));
+  dayData = snap.exists() ? snap.data() : {};
+}
+async function loadAllPeers() {
+  try {
+    const usersSnap = await getDocs(collection(db,'users'));
+    const peers = [];
+    for (const ud of usersSnap.docs) {
+      if (ud.id === currentUser.uid) continue;
+      const p = ud.data();
+      if (!p.username) continue;
+      const prefix = monthPrefix();
+      let doneCount = 0, peerGoal = p.wfoGoal||12;
+      try {
+        const ws = await getDoc(doc(db,'wfo',ud.id));
+        if (ws.exists()) {
+          const d = ws.data();
+          doneCount = Object.entries(d).filter(([k,v])=>k.startsWith(prefix)&&v==='done').length;
+        }
+        const mg = (p.monthGoals||{})[prefix];
+        if (mg !== undefined) peerGoal = mg;
+      } catch(_){}
+      peers.push({ uid:ud.id, username:p.username, wfoGoal:peerGoal,
+                   doneCount, monthGoals:p.monthGoals||{} });
     }
-    switch(sort){
-      case "az": arr.sort((a,b)=> (a.name||"").localeCompare(b.name||"")); break;
-      case "za": arr.sort((a,b)=> (b.name||"").localeCompare(a.name||"")); break;
-      case "oldest": arr.sort((a,b)=> tsToDate(a.createdAt) - tsToDate(b.createdAt)); break;
-      case "author": arr.sort((a,b)=> (a.createdByName||"").localeCompare(b.createdByName||"")); break;
-      default: arr.sort((a,b)=> tsToDate(b.createdAt) - tsToDate(a.createdAt));
-    }
-    return arr;
-  }, [data.links, q, sort]);
-
-  const canEdit = (l) => isAdmin || l.createdBy === user.uid;
-
-  const handleDelete = async (l) => {
-    setMenuOpenId(null);
-    const ok = await confirm("Delete this link?", "Are you sure you want to delete this item? This action cannot be undone.");
-    if(!ok) return;
-    await db.collection("links").doc(l.id).update({ deleted:true, deletedAt: FieldValue.serverTimestamp(), deletedBy: user.uid });
-    data.logActivity(`deleted a link ("${l.name}")`);
-    toast("Item deleted.");
-  };
-
-  return (
-    <div>
-      {confirmNode}
-      {editTarget && <LinkFormModal editing={editTarget} onClose={()=>setEditTarget(null)} user={user} profile={profile} />}
-      <div className="toolbar">
-        <div className="search-box">
-          <span className="ic"><Icon name="search" size={14}/></span>
-          <input placeholder="Search resources…" value={q} onChange={e=>setQ(e.target.value)} />
-        </div>
-        <select className="select-plain" value={sort} onChange={e=>setSort(e.target.value)}>
-          <option value="recent">Recently added</option>
-          <option value="oldest">Oldest first</option>
-          <option value="az">Name A–Z</option>
-          <option value="za">Name Z–A</option>
-          <option value="author">Added by</option>
-        </select>
-        <div style={{marginLeft:"auto"}}>
-          <button className="btn btn-primary" onClick={()=>openAdd("link")}><Icon name="plus" size={14}/> Add Link</button>
-        </div>
-      </div>
-
-      <div className="card">
-        {filtered.length === 0 ? (
-          <div className="empty-state"><div className="glyph">◌</div><div className="t1">No shared resources yet</div><div className="t2">Add your first team resource.</div></div>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Added by</th><th>Resource</th><th>Description</th><th>Link</th><th></th></tr></thead>
-              <tbody>
-                {filtered.map(l => (
-                  <tr key={l.id}>
-                    <td data-label="Added by">
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div className="tl-avatar" style={{width:24,height:24,fontSize:10}}>{initials(l.createdByName)}</div>
-                        {l.createdByName}
-                      </div>
-                    </td>
-                    <td data-label="Resource" className="link-row-name">{l.name}</td>
-                    <td data-label="Description" style={{color:"var(--muted)"}}>{l.description || "—"}</td>
-                    <td data-label="Link"><a className="open-link" href={l.url} target="_blank" rel="noopener noreferrer">Open <Icon name="external" size={12}/></a></td>
-                    <td data-label="">
-                      {canEdit(l) && (
-                        <div className="three-dot">
-                          <button className="btn btn-ghost btn-icon" onClick={()=>setMenuOpenId(menuOpenId===l.id?null:l.id)}><Icon name="dots" size={15}/></button>
-                          {menuOpenId===l.id && (
-                            <div className="dropdown" onMouseLeave={()=>setMenuOpenId(null)}>
-                              <button onClick={()=>{setEditTarget(l); setMenuOpenId(null);}}><Icon name="edit" size={13}/> &nbsp;Edit</button>
-                              <button className="danger" onClick={()=>handleDelete(l)}><Icon name="trash" size={13}/> &nbsp;Delete</button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    allPeers = peers;
+  } catch(e) { allPeers = []; }
+}
+async function persistDays() { await setDoc(doc(db,'wfo',currentUser.uid), dayData); }
+async function persistProfile(updates) {
+  try { await updateDoc(doc(db,'users',currentUser.uid), updates); }
+  catch { await setDoc(doc(db,'users',currentUser.uid), updates, {merge:true}); }
+  userProfile = {...userProfile, ...updates};
 }
 
-/* =========================================================================
-   SCRUM UPDATES PAGE
-   ========================================================================= */
-function UpdateFormModal({ onClose, editing, user, profile }){
-  const toast = useToast();
-  const data = useData();
-  const [date, setDate] = useState(editing ? toDateInput(tsToDate(editing.date)) : toDateInput(new Date()));
-  const [text, setText] = useState(editing?.text || "");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+// ── REGISTER / LOGIN / FORGOT ─────────────────────────────────────────
+document.getElementById('reg-btn').addEventListener('click', async () => {
+  const username=document.getElementById('reg-username').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const password=document.getElementById('reg-password').value;
+  const msgEl=document.getElementById('reg-msg');
+  if(!username){showMsg(msgEl,'Please enter a username.','err');return;}
+  if(!email){showMsg(msgEl,'Please enter your email.','err');return;}
+  if(password.length<6){showMsg(msgEl,'Password must be at least 6 characters.','err');return;}
+  setLoading('reg-btn',true);
+  try {
+    const cred=await createUserWithEmailAndPassword(auth,email,password);
+    await setDoc(doc(db,'users',cred.user.uid),{username,email,wfoGoal:12});
+  } catch(e) { showMsg(msgEl,friendlyError(e.code),'err'); setLoading('reg-btn',false); }
+});
+document.getElementById('forgot-btn').addEventListener('click', async () => {
+  const email=document.getElementById('forgot-email').value.trim();
+  const msgEl=document.getElementById('forgot-msg');
+  if(!email){showMsg(msgEl,'Please enter your email address.','err');return;}
+  setLoading('forgot-btn',true);
+  try {
+    await sendPasswordResetEmail(auth,email);
+    showMsg(msgEl,'Reset email sent! Check your inbox.','ok');
+    document.getElementById('forgot-email').value='';
+  } catch(e) { showMsg(msgEl,friendlyError(e.code)||e.message,'err'); }
+  finally { setLoading('forgot-btn',false); }
+});
+document.getElementById('login-btn').addEventListener('click', async () => {
+  const email=document.getElementById('login-email').value.trim();
+  const password=document.getElementById('login-password').value;
+  const msgEl=document.getElementById('login-msg');
+  setLoading('login-btn',true);
+  try { await signInWithEmailAndPassword(auth,email,password); }
+  catch(e) { showMsg(msgEl,friendlyError(e.code),'err'); setLoading('login-btn',false); }
+});
+['login-email','login-password'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-btn').click();}));
+['reg-username','reg-email','reg-password'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('reg-btn').click();}));
+document.getElementById('forgot-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('forgot-btn').click();});
 
-  const submit = async (e) => {
-    e.preventDefault(); setError("");
-    if(!text.trim()){ setError("Enter the update text."); return; }
-    setBusy(true);
-    try{
-      const dateObj = new Date(date + "T00:00:00");
-      if(editing){
-        await db.collection("scrumUpdates").doc(editing.id).update({
-          date: Timestamp.fromDate(dateObj), text: text.trim(),
-          updatedAt: FieldValue.serverTimestamp(), updatedBy: user.uid, updatedByName: profile.fullName,
-        });
-        toast("Changes saved.");
-      }else{
-        await db.collection("scrumUpdates").add({
-          date: Timestamp.fromDate(dateObj), text: text.trim(),
-          authorId: user.uid, authorName: profile.fullName,
-          createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
-          deleted: false,
-        });
-        data.logActivity("posted a scrum update");
-        toast("Scrum update posted.");
-      }
-      onClose();
-    }catch(err){ setError(err.message); }
-    setBusy(false);
-  };
+window.doSignOut = async () => { await signOut(auth); dayData={}; userProfile={}; };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-head"><h3>{editing ? "Edit update" : "Add update"}</h3><button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x" size={16}/></button></div>
-        <form onSubmit={submit}>
-          <div className="modal-body">
-            {error && <div className="banner banner-err">{error}</div>}
-            <div className="field">
-              <label>Date</label>
-              <input type="date" value={date} onChange={e=>setDate(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Update</label>
-              <textarea style={{minHeight:110}} value={text} onChange={e=>setText(e.target.value)} placeholder="Close all outstanding complaints by September 5." />
-            </div>
-            <div className="hint">Posted as {profile.fullName}, timestamped automatically.</div>
-          </div>
-          <div className="modal-foot">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : (editing ? "Save changes" : "Post update")}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+// ── RENDER ────────────────────────────────────────────────────────────
+function renderAll() { renderStats(); renderGoalBar(); renderCalendar(); }
+
+function renderSidebar() {
+  const container = document.getElementById('sidebar-peers');
+  container.innerHTML = '';
+  const prefix = monthPrefix();
+  const myDone = Object.entries(dayData).filter(([k,v])=>k.startsWith(prefix)&&v==='done').length;
+  const myGoal = currentMonthGoal();
+  const myPct  = myGoal>0 ? Math.min(100,Math.round((myDone/myGoal)*100)) : 0;
+  const youEl  = document.createElement('div');
+  youEl.className = 'peer-item you'+((!viewingPeer)?' active':'');
+  youEl.innerHTML = `<div class="peer-name">You</div><div class="peer-progress-wrap"><div class="peer-progress-fill" style="width:${myPct}%"></div></div>`;
+  youEl.addEventListener('click', returnToOwnCalendar);
+  container.appendChild(youEl);
+
+  allPeers.forEach(peer => {
+    const g = ((peer.monthGoals||{})[prefix] !== undefined) ? (peer.monthGoals||{})[prefix] : (peer.wfoGoal||12);
+    const pct = g>0 ? Math.min(100,Math.round((peer.doneCount/g)*100)) : 0;
+    const el = document.createElement('div');
+    el.className = 'peer-item'+(viewingPeer&&viewingPeer.uid===peer.uid?' active':'');
+    el.innerHTML = `<div class="peer-name">${escapeHtml(peer.username)}</div><div class="peer-progress-wrap"><div class="peer-progress-fill" style="width:${pct}%"></div></div>`;
+    el.addEventListener('click', ()=>openPeerCalendar(peer.uid, peer.username));
+    container.appendChild(el);
+  });
 }
 
-function UpdatesPage({ user, profile, openAdd, editTarget, setEditTarget }){
-  const data = useData();
-  const toast = useToast();
-  const [confirm, confirmNode] = useConfirm();
-  const [view, setView] = useState("timeline");
-  const [menuOpenId, setMenuOpenId] = useState(null);
-  const [calMonth, setCalMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(null);
-  const isAdmin = profile.role === "admin";
-  const canEdit = (u) => isAdmin || u.authorId === user.uid;
+window.openPeerCalendar = async function(uid, username) {
+  const wfoSnap  = await getDoc(doc(db,'wfo',uid));
+  const peerDays = wfoSnap.exists() ? wfoSnap.data() : {};
+  const peerPro  = allPeers.find(p=>p.uid===uid) || {};
+  const prefix   = monthPrefix();
+  const peerGoal = ((peerPro.monthGoals||{})[prefix] !== undefined)
+    ? (peerPro.monthGoals||{})[prefix] : (peerPro.wfoGoal||12);
+  const peerDone    = Object.entries(peerDays).filter(([k,v])=>k.startsWith(prefix)&&v==='done').length;
+  const peerPending = Math.max(0, peerGoal - peerDone);
 
-  const handleDelete = async (u) => {
-    setMenuOpenId(null);
-    const ok = await confirm("Delete this update?", "Are you sure you want to delete this item? This action cannot be undone.");
-    if(!ok) return;
-    await db.collection("scrumUpdates").doc(u.id).update({ deleted:true, deletedAt: FieldValue.serverTimestamp(), deletedBy: user.uid });
-    toast("Item deleted.");
-  };
+  viewingPeer = { uid, username, dayData:peerDays, wfoGoal:peerGoal };
 
-  // Group by date for timeline
-  const grouped = useMemo(() => {
-    const map = new Map();
-    data.updates.forEach(u => {
-      const d = tsToDate(u.date);
-      const key = d ? toDateInput(d) : "unknown";
-      if(!map.has(key)) map.set(key, []);
-      map.get(key).push(u);
-    });
-    return Array.from(map.entries()).sort((a,b)=> b[0].localeCompare(a[0]));
-  }, [data.updates]);
+  document.getElementById('view-banner-name').textContent = username;
+  document.getElementById('view-banner').classList.add('active');
+  document.getElementById('my-stats-bar').style.display  = 'none';
+  document.getElementById('goal-bar-wrap').style.display = 'none';
+  document.getElementById('peer-stats-bar').classList.add('active');
+  document.getElementById('peer-stat-goal').textContent    = peerGoal;
+  document.getElementById('peer-stat-done').textContent    = peerDone;
+  document.getElementById('peer-stat-pending').textContent = peerPending;
 
-  // Calendar computations
-  const year = calMonth.getFullYear(), month = calMonth.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startWeekday = firstDay.getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const countsByDay = useMemo(() => {
-    const m = {};
-    data.updates.forEach(u => {
-      const d = tsToDate(u.date);
-      if(d && d.getFullYear()===year && d.getMonth()===month){
-        m[d.getDate()] = (m[d.getDate()]||0) + 1;
-      }
-    });
-    return m;
-  }, [data.updates, year, month]);
-
-  const cells = [];
-  for(let i=0;i<startWeekday;i++) cells.push(null);
-  for(let d=1; d<=daysInMonth; d++) cells.push(d);
-
-  const selectedUpdates = useMemo(() => {
-    if(!selectedDate) return [];
-    return data.updates.filter(u => { const d = tsToDate(u.date); return d && sameDay(d, selectedDate); });
-  }, [selectedDate, data.updates]);
-
-  return (
-    <div>
-      {confirmNode}
-      {editTarget && <UpdateFormModal editing={editTarget} onClose={()=>setEditTarget(null)} user={user} profile={profile} />}
-      <div className="toolbar">
-        <div className="toggle-group">
-          <button className={view==="timeline"?"on":""} onClick={()=>setView("timeline")}>Timeline</button>
-          <button className={view==="calendar"?"on":""} onClick={()=>setView("calendar")}>Calendar</button>
-        </div>
-        <div style={{marginLeft:"auto"}}>
-          <button className="btn btn-primary" onClick={()=>openAdd("update")}><Icon name="plus" size={14}/> Add Update</button>
-        </div>
-      </div>
-
-      {view === "timeline" && (
-        <div className="card card-pad">
-          {grouped.length === 0 ? (
-            <div className="empty-state"><div className="glyph">◌</div><div className="t1">No scrum updates yet</div><div className="t2">Post the first update from today's scrum.</div></div>
-          ) : grouped.map(([dateKey, items]) => (
-            <div key={dateKey}>
-              <div className="tl-date-head">
-                <h4>{fmtDate(new Date(dateKey + "T00:00:00"))}</h4>
-                <div className="line"></div>
-              </div>
-              {items.map(u => (
-                <div className="tl-item" key={u.id}>
-                  <div className="tl-avatar">{initials(u.authorName)}</div>
-                  <div className="tl-body">
-                    <div className="tl-meta">
-                      <span className="tl-author">{u.authorName}</span>
-                      <span className="tl-time">{fmtTime(tsToDate(u.createdAt))}</span>
-                      {u.updatedAt && u.updatedByName && <span className="tl-time" style={{fontStyle:"italic"}}>· edited</span>}
-                    </div>
-                    <div className="tl-text">{u.text}</div>
-                  </div>
-                  {canEdit(u) && (
-                    <div className="three-dot tl-actions">
-                      <button className="btn btn-ghost btn-icon" onClick={()=>setMenuOpenId(menuOpenId===u.id?null:u.id)}><Icon name="dots" size={15}/></button>
-                      {menuOpenId===u.id && (
-                        <div className="dropdown" onMouseLeave={()=>setMenuOpenId(null)}>
-                          <button onClick={()=>{setEditTarget(u); setMenuOpenId(null);}}><Icon name="edit" size={13}/> &nbsp;Edit</button>
-                          <button className="danger" onClick={()=>handleDelete(u)}><Icon name="trash" size={13}/> &nbsp;Delete</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {view === "calendar" && (
-        <div className="grid-2">
-          <div className="card card-pad">
-            <div className="toolbar" style={{marginBottom:16}}>
-              <div className="month-nav">
-                <button className="btn btn-ghost btn-icon" onClick={()=>setCalMonth(new Date(year, month-1, 1))}><Icon name="chevronL" size={16}/></button>
-                <h3>{calMonth.toLocaleDateString(undefined,{month:"long", year:"numeric"})}</h3>
-                <button className="btn btn-ghost btn-icon" onClick={()=>setCalMonth(new Date(year, month+1, 1))}><Icon name="chevronR" size={16}/></button>
-              </div>
-              <button className="btn btn-secondary btn-sm" style={{marginLeft:"auto"}} onClick={()=>{ const now = new Date(); setCalMonth(now); setSelectedDate(now); }}>Today</button>
-            </div>
-            <div className="cal-grid">
-              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => <div className="cal-dow" key={d}>{d}</div>)}
-              {cells.map((d, i) => {
-                if(d === null) return <div className="cal-cell empty" key={i}></div>;
-                const cellDate = new Date(year, month, d);
-                const isToday = sameDay(cellDate, new Date());
-                const isSel = selectedDate && sameDay(cellDate, selectedDate);
-                const count = countsByDay[d];
-                return (
-                  <div key={i} className={`cal-cell ${isToday?"today":""} ${isSel?"selected":""}`} onClick={()=>setSelectedDate(cellDate)}>
-                    <div className="cal-daynum">{d}</div>
-                    {count > 0 && <div className="cal-count"><Icon name="dot" size={7}/>{count}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-head"><h3>{selectedDate ? fmtDate(selectedDate) : "Select a date"}</h3>{selectedDate && <span className="badge badge-user">{selectedUpdates.length} update{selectedUpdates.length!==1?"s":""}</span>}</div>
-            <div style={{padding: selectedUpdates.length ? "6px 20px" : 0}}>
-              {!selectedDate ? (
-                <div className="empty-state"><div className="glyph">◌</div><div className="t2">Click a date to see updates.</div></div>
-              ) : selectedUpdates.length === 0 ? (
-                <div className="empty-state"><div className="glyph">◌</div><div className="t1">No scrum updates for this date</div></div>
-              ) : selectedUpdates.map(u => (
-                <div className="tl-item" key={u.id}>
-                  <div className="tl-avatar">{initials(u.authorName)}</div>
-                  <div className="tl-body">
-                    <div className="tl-meta"><span className="tl-author">{u.authorName}</span><span className="tl-time">{fmtTime(tsToDate(u.createdAt))}</span></div>
-                    <div className="tl-text">{u.text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* =========================================================================
-   DEADLINES PAGE
-   ========================================================================= */
-function DeadlineFormModal({ onClose, editing, user, profile }){
-  const toast = useToast();
-  const data = useData();
-  const [title, setTitle] = useState(editing?.title || "");
-  const [dueDate, setDueDate] = useState(editing ? toDateInput(tsToDate(editing.dueDate)) : toDateInput(new Date()));
-  const [repeat, setRepeat] = useState(editing?.repeat || "none");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault(); setError("");
-    if(!title.trim()){ setError("Enter a deadline description."); return; }
-    if(!dueDate){ setError("Pick a due date."); return; }
-    setBusy(true);
-    try{
-      const dateObj = new Date(dueDate + "T00:00:00");
-      if(editing){
-        await db.collection("deadlines").doc(editing.id).update({
-          title: title.trim(), dueDate: Timestamp.fromDate(dateObj), repeat,
-          updatedAt: FieldValue.serverTimestamp(), updatedBy: user.uid, updatedByName: profile.fullName,
-        });
-        toast("Changes saved.");
-      }else{
-        await db.collection("deadlines").add({
-          title: title.trim(), dueDate: Timestamp.fromDate(dateObj), repeat,
-          status: "pending",
-          createdBy: user.uid, createdByName: profile.fullName,
-          createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
-          completedBy: null, completedByName: null, completedAt: null,
-          deleted: false,
-        });
-        data.logActivity(`added a deadline ("${title.trim()}")`);
-        toast("Deadline added.");
-      }
-      onClose();
-    }catch(err){ setError(err.message); }
-    setBusy(false);
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-head"><h3>{editing ? "Edit deadline" : "Add deadline"}</h3><button className="btn btn-ghost btn-icon" onClick={onClose}><Icon name="x" size={16}/></button></div>
-        <form onSubmit={submit}>
-          <div className="modal-body">
-            {error && <div className="banner banner-err">{error}</div>}
-            <div className="field">
-              <label>Deadline</label>
-              <input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Close all complaints" />
-            </div>
-            <div className="field">
-              <label>Due date</label>
-              <input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Repeat</label>
-              <div className="radio-row">
-                {[["none","Does not repeat"],["monthly","Monthly"],["weekly","Weekly"],["custom","Custom"]].map(([val,lbl]) => (
-                  <div key={val} className={`radio-chip ${repeat===val?"sel":""}`} onClick={()=>setRepeat(val)} role="button">{lbl}</div>
-                ))}
-              </div>
-              <div className="hint">Recurring occurrences are tracked as separate items so history is preserved.</div>
-            </div>
-          </div>
-          <div className="modal-foot">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : (editing ? "Save changes" : "Add deadline")}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function DeadlinesPage({ user, profile, openAdd, editTarget, setEditTarget }){
-  const data = useData();
-  const toast = useToast();
-  const [confirm, confirmNode] = useConfirm();
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [monthOffset, setMonthOffset] = useState(0);
-  const [menuOpenId, setMenuOpenId] = useState(null);
-  const [q, setQ] = useState("");
-  const isAdmin = profile.role === "admin";
-  const canEdit = (d) => isAdmin || d.createdBy === user.uid;
-
-  const viewMonth = new Date(); viewMonth.setMonth(viewMonth.getMonth() + monthOffset);
-  const y = viewMonth.getFullYear(), m = viewMonth.getMonth();
-
-  const filtered = useMemo(() => {
-    let arr = data.deadlines.filter(d => {
-      const dd = tsToDate(d.dueDate);
-      return dd && dd.getFullYear()===y && dd.getMonth()===m;
-    });
-    if(statusFilter !== "all") arr = arr.filter(d => statusFilter==="completed" ? d.status==="completed" : d.status!=="completed");
-    if(q.trim()){
-      const t = q.trim().toLowerCase();
-      arr = arr.filter(d => (d.title||"").toLowerCase().includes(t) || (d.createdByName||"").toLowerCase().includes(t));
-    }
-    return arr.sort((a,b)=> tsToDate(a.dueDate) - tsToDate(b.dueDate));
-  }, [data.deadlines, y, m, statusFilter, q]);
-
-  const toggleComplete = async (d) => {
-    if(d.status === "completed"){
-      await db.collection("deadlines").doc(d.id).update({
-        status:"pending", completedBy:null, completedByName:null, completedAt:null,
-      });
-    }else{
-      await db.collection("deadlines").doc(d.id).update({
-        status:"completed", completedBy:user.uid, completedByName:profile.fullName, completedAt: FieldValue.serverTimestamp(),
-      });
-      data.logActivity(`completed a deadline ("${d.title}")`);
-      toast("Deadline completed.");
-    }
-  };
-
-  const handleDelete = async (d) => {
-    setMenuOpenId(null);
-    const ok = await confirm("Delete this deadline?", "Are you sure you want to delete this item? This action cannot be undone.");
-    if(!ok) return;
-    await db.collection("deadlines").doc(d.id).update({ deleted:true, deletedAt: FieldValue.serverTimestamp(), deletedBy: user.uid });
-    toast("Item deleted.");
-  };
-
-  return (
-    <div>
-      {confirmNode}
-      {editTarget && <DeadlineFormModal editing={editTarget} onClose={()=>setEditTarget(null)} user={user} profile={profile} />}
-      <div className="toolbar">
-        <div className="month-nav">
-          <button className="btn btn-ghost btn-icon" onClick={()=>setMonthOffset(o=>o-1)}><Icon name="chevronL" size={16}/></button>
-          <h3>{viewMonth.toLocaleDateString(undefined,{month:"long", year:"numeric"})}</h3>
-          <button className="btn btn-ghost btn-icon" onClick={()=>setMonthOffset(o=>o+1)}><Icon name="chevronR" size={16}/></button>
-        </div>
-        {monthOffset !== 0 && <button className="btn btn-secondary btn-sm" onClick={()=>setMonthOffset(0)}>This month</button>}
-        <div className="toggle-group">
-          <button className={statusFilter==="all"?"on":""} onClick={()=>setStatusFilter("all")}>All</button>
-          <button className={statusFilter==="pending"?"on":""} onClick={()=>setStatusFilter("pending")}>Pending</button>
-          <button className={statusFilter==="completed"?"on":""} onClick={()=>setStatusFilter("completed")}>Completed</button>
-        </div>
-        <div className="search-box" style={{maxWidth:220}}>
-          <span className="ic"><Icon name="search" size={14}/></span>
-          <input placeholder="Search…" value={q} onChange={e=>setQ(e.target.value)} />
-        </div>
-        <div style={{marginLeft:"auto"}}>
-          <button className="btn btn-primary" onClick={()=>openAdd("deadline")}><Icon name="plus" size={14}/> Add Deadline</button>
-        </div>
-      </div>
-
-      <div className="card">
-        {filtered.length === 0 ? (
-          <div className="empty-state"><div className="glyph">◌</div><div className="t1">No deadlines for this month</div><div className="t2">Add a deadline to get started.</div></div>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Date</th><th>Deadline</th><th>Added by</th><th>Status</th><th></th></tr></thead>
-              <tbody>
-                {filtered.map(d => {
-                  const done = d.status === "completed";
-                  return (
-                    <tr key={d.id} className={done ? "subdued" : ""}>
-                      <td data-label="Date">{fmtDateShort(tsToDate(d.dueDate))}</td>
-                      <td data-label="Deadline">
-                        <span className={done ? "strike" : ""}>{d.title}</span>
-                        {done && d.completedByName && <div className="link-row-desc">Completed by {d.completedByName} · {fmtDate(tsToDate(d.completedAt))} at {fmtTime(tsToDate(d.completedAt))}</div>}
-                        {d.repeat && d.repeat !== "none" && <div className="link-row-desc" style={{textTransform:"capitalize"}}>Repeats {d.repeat}</div>}
-                      </td>
-                      <td data-label="Added by">{d.createdByName}</td>
-                      <td data-label="Status">{done ? <span className="badge badge-done"><Icon name="check" size={11}/> Completed</span> : <span className="badge badge-pending">Pending</span>}</td>
-                      <td data-label="">
-                        <div style={{display:"flex",alignItems:"center",gap:8,justifyContent:"flex-end"}}>
-                          <div className={`checkmark ${done?"done":""}`} onClick={()=>toggleComplete(d)} role="button" title={done?"Mark as pending":"Mark as complete"}>
-                            {done && <Icon name="check" size={13} />}
-                          </div>
-                          {canEdit(d) && (
-                            <div className="three-dot">
-                              <button className="btn btn-ghost btn-icon" onClick={()=>setMenuOpenId(menuOpenId===d.id?null:d.id)}><Icon name="dots" size={15}/></button>
-                              {menuOpenId===d.id && (
-                                <div className="dropdown" onMouseLeave={()=>setMenuOpenId(null)}>
-                                  <button onClick={()=>{setEditTarget(d); setMenuOpenId(null);}}><Icon name="edit" size={13}/> &nbsp;Edit</button>
-                                  <button className="danger" onClick={()=>handleDelete(d)}><Icon name="trash" size={13}/> &nbsp;Delete</button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================================
-   ADMIN PAGE
-   ========================================================================= */
-function AdminPage({ user, profile }){
-  const data = useData();
-  const toast = useToast();
-  const [confirm, confirmNode] = useConfirm();
-  const [tab, setTab] = useState("users");
-
-  const changeRole = async (u, role) => {
-    if(u.id === user.uid && role !== "admin"){
-      const ok = await confirm("Remove your own admin access?", "You are about to remove admin privileges from your own account. You will lose access to this Admin area.");
-      if(!ok) return;
-    }
-    await db.collection("users").doc(u.id).update({ role });
-    toast(`${u.fullName} is now ${role === "admin" ? "an admin" : "a team member"}.`);
-  };
-
-  const toggleStatus = async (u) => {
-    const newStatus = u.status === "disabled" ? "active" : "disabled";
-    const ok = await confirm(
-      newStatus === "disabled" ? "Disable this user?" : "Re-enable this user?",
-      newStatus === "disabled" ? "They will no longer be able to sign in. Their existing content will remain visible." : "They will be able to sign in again.",
-      newStatus === "disabled"
-    );
-    if(!ok) return;
-    await db.collection("users").doc(u.id).update({ status: newStatus });
-    toast(`${u.fullName} ${newStatus === "disabled" ? "disabled" : "re-enabled"}.`);
-  };
-
-  const removeContent = async (type, item) => {
-    const ok = await confirm("Delete this item?", "Are you sure you want to delete this item? This action cannot be undone.");
-    if(!ok) return;
-    const coll = type === "link" ? "links" : type === "update" ? "scrumUpdates" : "deadlines";
-    await db.collection(coll).doc(item.id).update({ deleted:true, deletedAt: FieldValue.serverTimestamp(), deletedBy: user.uid });
-    toast("Item deleted.");
-  };
-
-  return (
-    <div>
-      {confirmNode}
-      <div className="toolbar">
-        <div className="toggle-group">
-          <button className={tab==="users"?"on":""} onClick={()=>setTab("users")}>Users</button>
-          <button className={tab==="content"?"on":""} onClick={()=>setTab("content")}>Content</button>
-          <button className={tab==="activity"?"on":""} onClick={()=>setTab("activity")}>Activity log</button>
-        </div>
-      </div>
-
-      {tab === "users" && (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Full name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
-              <tbody>
-                {data.users.map(u => (
-                  <tr key={u.id}>
-                    <td data-label="Name">{u.fullName}</td>
-                    <td data-label="Email" style={{color:"var(--muted)"}}>{u.email}</td>
-                    <td data-label="Role">
-                      <select className="select-plain" value={u.role} onChange={e=>changeRole(u, e.target.value)}>
-                        <option value="user">Team member</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td data-label="Status">{u.status === "disabled" ? <span className="badge badge-pending">Disabled</span> : <span className="badge badge-done">Active</span>}</td>
-                    <td data-label="Joined">{u.createdAt ? fmtDateShort(tsToDate(u.createdAt)) : "—"}</td>
-                    <td data-label="">
-                      <button className="btn btn-secondary btn-sm" onClick={()=>toggleStatus(u)}>{u.status==="disabled" ? "Re-enable" : "Disable"}</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {tab === "content" && (
-        <div>
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-head"><h3>Links ({data.links.length})</h3></div>
-            <div className="table-wrap">
-              <table>
-                <tbody>
-                  {data.links.map(l => (
-                    <tr key={l.id}>
-                      <td data-label="Resource" className="link-row-name">{l.name}</td>
-                      <td data-label="Added by">{l.createdByName}</td>
-                      <td data-label=""><button className="btn btn-danger btn-sm" onClick={()=>removeContent("link", l)}>Delete</button></td>
-                    </tr>
-                  ))}
-                  {data.links.length === 0 && <tr><td style={{color:"var(--muted)"}}>No links yet.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="card" style={{marginBottom:16}}>
-            <div className="card-head"><h3>Scrum updates ({data.updates.length})</h3></div>
-            <div className="table-wrap">
-              <table>
-                <tbody>
-                  {data.updates.slice(0,20).map(u => (
-                    <tr key={u.id}>
-                      <td data-label="Update">{(u.text||"").slice(0,70)}{(u.text||"").length>70?"…":""}</td>
-                      <td data-label="By">{u.authorName}</td>
-                      <td data-label=""><button className="btn btn-danger btn-sm" onClick={()=>removeContent("update", u)}>Delete</button></td>
-                    </tr>
-                  ))}
-                  {data.updates.length === 0 && <tr><td style={{color:"var(--muted)"}}>No updates yet.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-head"><h3>Deadlines ({data.deadlines.length})</h3></div>
-            <div className="table-wrap">
-              <table>
-                <tbody>
-                  {data.deadlines.map(d => (
-                    <tr key={d.id}>
-                      <td data-label="Deadline">{d.title}</td>
-                      <td data-label="By">{d.createdByName}</td>
-                      <td data-label=""><button className="btn btn-danger btn-sm" onClick={()=>removeContent("deadline", d)}>Delete</button></td>
-                    </tr>
-                  ))}
-                  {data.deadlines.length === 0 && <tr><td style={{color:"var(--muted)"}}>No deadlines yet.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === "activity" && (
-        <div className="card card-pad">
-          {data.activity.length === 0 ? (
-            <div className="empty-state"><div className="glyph">◌</div><div className="t1">No activity recorded yet</div></div>
-          ) : data.activity.map(a => (
-            <div className="activity-row" key={a.id}>
-              <div className="activity-dot"></div>
-              <div className="activity-text">
-                <div><span className="who">{a.userName}</span> {a.text}</div>
-                <div className="activity-time">{a.createdAt ? fmtDate(tsToDate(a.createdAt)) + " at " + fmtTime(tsToDate(a.createdAt)) : ""}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* =========================================================================
-   PAGE TITLES
-   ========================================================================= */
-const PAGE_META = {
-  dashboard: { title: "Dashboard", desc: "A quick overview of what the team is working on." },
-  links: { title: "Links", desc: "Central directory of shared trackers, documents, and resources." },
-  updates: { title: "Scrum Updates", desc: "Chronological record of what's communicated in daily scrum." },
-  deadlines: { title: "Deadlines", desc: "Recurring and one-off tasks that need to be completed." },
-  admin: { title: "Admin", desc: "Manage users, content, and review recent activity." },
+  renderCalendar();
+  renderSidebar();
 };
 
-/* =========================================================================
-   APP SHELL (post-login)
-   ========================================================================= */
-function AppShell({ user, profile }){
-  const [page, setPage] = useState("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [addModal, setAddModal] = useState(null); // "link" | "update" | "deadline"
-  const [editTarget, setEditTarget] = useState(null);
-  const [changePwOpen, setChangePwOpen] = useState(false);
+window.returnToOwnCalendar = function() {
+  viewingPeer = null;
+  document.getElementById('view-banner').classList.remove('active');
+  document.getElementById('my-stats-bar').style.display  = '';
+  document.getElementById('goal-bar-wrap').style.display = '';
+  document.getElementById('peer-stats-bar').classList.remove('active');
+  renderAll();
+  renderSidebar();
+};
 
-  const openAdd = (type) => setAddModal(type);
-  const closeAdd = () => setAddModal(null);
-
-  const meta = PAGE_META[page] || PAGE_META.dashboard;
-
-  return (
-    <DataProvider user={user} profile={profile}>
-      <div className="app-shell">
-        <Sidebar page={page} setPage={setPage} profile={profile} user={user} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} onOpenChangePw={()=>setChangePwOpen(true)} />
-        <div className="main">
-          <div className="topbar">
-            <div style={{display:"flex",alignItems:"center",gap:14}}>
-              <button className="hamburger" onClick={()=>setSidebarOpen(o=>!o)}><Icon name="menu" size={18}/></button>
-              <div>
-                <h1>{meta.title}</h1>
-                <div className="desc">{meta.desc}</div>
-              </div>
-            </div>
-            <GlobalSearch />
-          </div>
-          <div className="content">
-            {page === "dashboard" && <DashboardPage setPage={setPage} openAdd={openAdd} />}
-            {page === "links" && <LinksPage user={user} profile={profile} openAdd={openAdd} editTarget={editTarget} setEditTarget={setEditTarget} />}
-            {page === "updates" && <UpdatesPage user={user} profile={profile} openAdd={openAdd} editTarget={editTarget} setEditTarget={setEditTarget} />}
-            {page === "deadlines" && <DeadlinesPage user={user} profile={profile} openAdd={openAdd} editTarget={editTarget} setEditTarget={setEditTarget} />}
-            {page === "admin" && profile.role === "admin" && <AdminPage user={user} profile={profile} />}
-          </div>
-        </div>
-      </div>
-
-      {addModal === "link" && <LinkFormModal onClose={closeAdd} editing={null} user={user} profile={profile} />}
-      {addModal === "update" && <UpdateFormModal onClose={closeAdd} editing={null} user={user} profile={profile} />}
-      {addModal === "deadline" && <DeadlineFormModal onClose={closeAdd} editing={null} user={user} profile={profile} />}
-      {changePwOpen && <ChangePasswordModal onClose={()=>setChangePwOpen(false)} />}
-    </DataProvider>
-  );
-}
-
-/* =========================================================================
-   ROOT APP — auth state listener
-   ========================================================================= */
-function Root(){
-  const [authLoading, setAuthLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (u) => {
-      setUser(u);
-      setAuthLoading(false);
-      if(!u){ setProfile(null); return; }
-    });
-    return unsub;
-  }, []);
-
-  useEffect(() => {
-    if(!user){ setProfile(null); return; }
-    setProfileLoading(true);
-    const unsub = db.collection("users").doc(user.uid).onSnapshot(
-      (doc) => {
-        if(doc.exists){ setProfile({ id: doc.id, ...doc.data() }); }
-        else { setProfile(null); }
-        setProfileLoading(false);
-      },
-      () => setProfileLoading(false)
-    );
-    return unsub;
-  }, [user]);
-
-  if(authLoading) return <div className="loading-screen">Loading…</div>;
-  if(!user) return <AuthScreen />;
-  if(profileLoading || !profile) return <div className="loading-screen">Setting up your workspace…</div>;
-
-  if(profile.status === "disabled"){
-    return (
-      <div className="auth-wrap">
-        <div className="auth-card">
-          <div className="auth-box" style={{textAlign:"center"}}>
-            <h2 style={{marginBottom:10}}>Account disabled</h2>
-            <div style={{color:"var(--muted)",fontSize:13.5,marginBottom:18}}>Your access has been disabled by an administrator. Contact your team lead if you believe this is a mistake.</div>
-            <button className="btn btn-secondary" onClick={()=>auth.signOut()}>Sign out</button>
-          </div>
-        </div>
-      </div>
-    );
+function renderStats() {
+  const prefix  = monthPrefix();
+  const entries = Object.entries(dayData).filter(([k])=>k.startsWith(prefix));
+  const done    = entries.filter(([,v])=>v==='done').length;
+  const planned = entries.filter(([,v])=>v==='planned').length;
+  const goal    = currentMonthGoal();
+  const pending = Math.max(0, goal - done);
+  const pct     = goal>0 ? Math.min(100,Math.round((done/goal)*100)) : 0;
+  document.getElementById('stat-goal').textContent     = goal;
+  document.getElementById('stat-done').textContent     = done;
+  document.getElementById('stat-pending').textContent  = pending;
+  document.getElementById('goal-display').textContent  = goal;
+  document.getElementById('progress-fill').style.width = pct+'%';
+  document.getElementById('pct-label').textContent     = pct+'% complete this month';
+  const nudgeEl = document.getElementById('nudge-msg');
+  if (nudgeEl) {
+    const sel = done+planned, shortfall = goal-sel;
+    nudgeEl.textContent = (goal>0&&shortfall>0)
+      ? `${sel} day${sel!==1?'s':''} selected — select ${shortfall} more to match your target` : '';
   }
-
-  return <AppShell user={user} profile={profile} />;
 }
 
-function App(){
-  return (
-    <ToastProvider>
-      <Root />
-    </ToastProvider>
-  );
+function renderGoalBar() {
+  const monthLabel = MONTHS[viewMonth]+' '+viewYear;
+  document.getElementById('goal-controls').innerHTML =
+    `<button class="btn-sm" onclick="startEditGoal()">Set ${monthLabel} Goal</button>`;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+function renderCalendar() {
+  const activeDayData  = viewingPeer ? viewingPeer.dayData : dayData;
+  const isReadOnly     = !!viewingPeer;
+  const weekOffIndices = (userProfile.weekOff || {})[monthPrefix()] || [];
+
+  document.getElementById('cal-title').textContent = MONTHS[viewMonth]+' '+viewYear;
+  document.getElementById('weekoff-btn').style.display = isReadOnly ? 'none' : '';
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  DOW.forEach(d => {
+    const el = document.createElement('div');
+    el.className='cal-dow'; el.textContent=d; grid.appendChild(el);
+  });
+
+  const firstDay  = new Date(viewYear, viewMonth, 1).getDay();
+  const totalDays = new Date(viewYear, viewMonth+1, 0).getDate();
+  const todayMid  = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayKey  = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+
+  for (let i=0; i<firstDay; i++) {
+    const el=document.createElement('div'); el.className='cal-cell empty'; grid.appendChild(el);
+  }
+  for (let d=1; d<=totalDays; d++) {
+    const key      = dateKey(viewYear, viewMonth, d);
+    const cellDate = new Date(viewYear, viewMonth, d);
+    const isOff    = weekOffIndices.includes(cellDate.getDay());
+    const status   = activeDayData[key] || '';
+    const isToday  = key===todayKey;
+    const isPast   = cellDate<todayMid;
+    const el = document.createElement('div');
+    if (isOff) {
+      el.className='cal-cell weekoff';
+      el.textContent=d;
+      el.title=DOW[cellDate.getDay()]+' — week off';
+    } else {
+      el.className=['cal-cell', isToday?'today':isPast?'past':'future', status].filter(Boolean).join(' ');
+      el.textContent=d; el.title=key;
+      if (!isReadOnly) el.addEventListener('click', ()=>toggleDay(key));
+      else el.style.cursor='default';
+    }
+    grid.appendChild(el);
+  }
+}
+
+// ── TOGGLE DAY ────────────────────────────────────────────────────────
+async function toggleDay(key) {
+  const cur  = dayData[key];
+  const next = !cur ? 'planned' : cur==='planned' ? 'done' : null;
+  if (next) dayData[key]=next; else delete dayData[key];
+  renderAll();
+  try {
+    await persistDays();
+    const labels={planned:'📅 Marked as planned',done:'✅ Marked as attended'};
+    toast(labels[next]||'🗑 Day cleared');
+  } catch(e) { toast('⚠️ Could not save. Check your connection.'); }
+}
+
+// ── GOAL EDIT ─────────────────────────────────────────────────────────
+window.startEditGoal = function() {
+  const cur=currentMonthGoal(), monthLabel=MONTHS[viewMonth]+' '+viewYear;
+  document.getElementById('goal-controls').innerHTML=`
+    <span style="font-size:.72rem;color:var(--muted);letter-spacing:.08em">${monthLabel} target:</span>
+    <input class="goal-input" type="number" id="goal-input-field" min="0" max="31" value="${cur}"/>
+    <button class="btn-sm" onclick="saveGoal()">Save</button>
+    <button class="btn-sm" onclick="renderGoalBar()">Cancel</button>`;
+  document.getElementById('goal-input-field').focus();
+  document.getElementById('goal-input-field').addEventListener('keydown',e=>{if(e.key==='Enter')saveGoal();});
+};
+window.saveGoal = async function() {
+  const val=parseInt(document.getElementById('goal-input-field').value,10);
+  if(isNaN(val)||val<0||val>31){toast('Enter a number between 0 and 31');return;}
+  const k=monthPrefix(), updatedGoals={...(userProfile.monthGoals||{}),[k]:val};
+  await persistProfile({monthGoals:updatedGoals});
+  renderAll();
+  toast('🎯 '+MONTHS[viewMonth]+' target set to '+val+' days');
+};
+
+// ── MONTH NAV ─────────────────────────────────────────────────────────
+window.changeMonth = function(dir) {
+  viewMonth+=dir;
+  if(viewMonth<0){viewMonth=11;viewYear--;}
+  if(viewMonth>11){viewMonth=0;viewYear++;}
+  renderAll(); renderSidebar();
+};
+
+// ── WEEK-OFF (DOW based) ──────────────────────────────────────────────
+window.openWeekOff = function() {
+  const prefix = monthPrefix();
+  _weekOffDraft = [...((userProfile.weekOff||{})[prefix]||[])];
+  document.getElementById('weekoff-modal-month').textContent = 'for ' + MONTHS[viewMonth] + ' ' + viewYear;
+  const picker = document.getElementById('dow-picker');
+  picker.innerHTML = '';
+  DOW.forEach((name, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'dow-btn'+(_weekOffDraft.includes(idx)?' selected':'');
+    btn.textContent = name; btn.dataset.idx = idx;
+    btn.addEventListener('click', () => {
+      if (_weekOffDraft.includes(idx)) {
+        _weekOffDraft = _weekOffDraft.filter(x=>x!==idx);
+        btn.classList.remove('selected');
+      } else {
+        _weekOffDraft.push(idx);
+        btn.classList.add('selected');
+      }
+      updateDowPreview();
+    });
+    picker.appendChild(btn);
+  });
+  updateDowPreview();
+  document.getElementById('weekoff-modal').classList.add('open');
+};
+function updateDowPreview() {
+  const el=document.getElementById('dow-preview');
+  if (_weekOffDraft.length===0) {
+    el.textContent='No days selected — all days are working days.';
+  } else {
+    const names=_weekOffDraft.slice().sort((a,b)=>a-b).map(i=>DOW[i]);
+    el.textContent=names.join(', ')+' will be greyed out in ' + MONTHS[viewMonth] + ' ' + viewYear + '.';
+  }
+}
+window.closeWeekOff = () => document.getElementById('weekoff-modal').classList.remove('open');
+window.saveWeekOff = async function() {
+  const btn=document.getElementById('weekoff-save-btn');
+  btn.disabled=true; btn.textContent='Saving…';
+  const prefix = monthPrefix();
+  // Clear any planned/done entries that fall on newly off days — only for current month
+  const offSet=new Set(_weekOffDraft);
+  Object.keys(dayData).forEach(key => {
+    if (!key.startsWith(prefix)) return;
+    const parts=key.split('-');
+    if(offSet.has(new Date(+parts[0],+parts[1]-1,+parts[2]).getDay())) delete dayData[key];
+  });
+  // Merge into per-month weekOff map
+  const updatedWeekOff = { ...(userProfile.weekOff||{}), [prefix]: _weekOffDraft };
+  await persistProfile({ weekOff: updatedWeekOff });
+  await persistDays();
+  closeWeekOff(); renderAll();
+  btn.disabled=false; btn.textContent='Save';
+  const names=_weekOffDraft.length===0?'none':_weekOffDraft.slice().sort((a,b)=>a-b).map(i=>DOW[i]).join(', ');
+  toast('📅 '+MONTHS[viewMonth]+' week-off: '+names);
+};
+document.getElementById('weekoff-modal').addEventListener('click', function(e){if(e.target===this)closeWeekOff();});
+
+// ── SETTINGS ──────────────────────────────────────────────────────────
+function buildThemeSwatches(activeId) {
+  const wrap=document.getElementById('theme-swatches');
+  wrap.innerHTML='';
+  BG_THEMES.forEach(theme => {
+    const sw=document.createElement('div');
+    sw.className='theme-swatch'+(activeId===theme.id?' active':'');
+    sw.style.background=theme.swatch;
+    sw.title=theme.label; sw.dataset.id=theme.id;
+    sw.addEventListener('click', () => {
+      wrap.querySelectorAll('.theme-swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+      _pendingImageData=null;
+      document.getElementById('theme-img-preview').classList.remove('visible');
+      document.getElementById('theme-remove-img').classList.remove('visible');
+    });
+    wrap.appendChild(sw);
+  });
+}
+window.openSettings = function() {
+  document.getElementById('s-username').value = userProfile.username||'';
+  document.getElementById('s-email').value    = currentUser.email||'';
+  document.getElementById('s-password').value = '';
+  document.getElementById('settings-msg').textContent = '';
+  _pendingImageData = null;
+  const savedImg = localStorage.getItem('wfo_bg_img_'+currentUser.uid);
+  buildThemeSwatches(savedImg?'':( userProfile.bgTheme||'default'));
+  const preview=document.getElementById('theme-img-preview');
+  const removeBtn=document.getElementById('theme-remove-img');
+  if (savedImg) {
+    preview.src=savedImg; preview.classList.add('visible'); removeBtn.classList.add('visible');
+  } else {
+    preview.classList.remove('visible'); removeBtn.classList.remove('visible');
+  }
+  document.getElementById('settings-modal').classList.add('open');
+};
+document.getElementById('theme-file-input').addEventListener('change', function() {
+  const file=this.files[0]; if(!file) return;
+  if(file.size>2*1024*1024){toast('⚠️ Image must be under 2 MB');this.value='';return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _pendingImageData=e.target.result;
+    const preview=document.getElementById('theme-img-preview');
+    preview.src=_pendingImageData; preview.classList.add('visible');
+    document.getElementById('theme-remove-img').classList.add('visible');
+    document.querySelectorAll('.theme-swatch').forEach(s=>s.classList.remove('active'));
+  };
+  reader.readAsDataURL(file); this.value='';
+});
+window.removeCustomImage = function() {
+  _pendingImageData='REMOVE';
+  document.getElementById('theme-img-preview').classList.remove('visible');
+  document.getElementById('theme-remove-img').classList.remove('visible');
+  buildThemeSwatches('default');
+};
+window.closeSettings = () => document.getElementById('settings-modal').classList.remove('open');
+window.saveSettings = async function() {
+  const username=document.getElementById('s-username').value.trim();
+  const email=document.getElementById('s-email').value.trim();
+  const password=document.getElementById('s-password').value;
+  const msgEl=document.getElementById('settings-msg');
+  setLoading('settings-save-btn',true); msgEl.textContent='';
+  try {
+    const activeSwatchEl=document.querySelector('.theme-swatch.active');
+    let chosenTheme=activeSwatchEl?activeSwatchEl.dataset.id:(userProfile.bgTheme||'default');
+    if (_pendingImageData==='REMOVE') {
+      localStorage.removeItem('wfo_bg_img_'+currentUser.uid); chosenTheme='default';
+    } else if (_pendingImageData) {
+      localStorage.setItem('wfo_bg_img_'+currentUser.uid, _pendingImageData); chosenTheme='custom';
+    }
+    const updates={username, bgTheme:chosenTheme};
+    if(email&&email!==currentUser.email) updates.email=email;
+    await persistProfile(updates);
+    if(email&&email!==currentUser.email) await updateEmail(currentUser,email);
+    if(password) await updatePassword(currentUser,password);
+    document.getElementById('header-username').textContent=username;
+    applyBackground();
+    showMsg(msgEl,'Changes saved successfully.','ok');
+    document.getElementById('s-password').value='';
+    renderStats();
+  } catch(e) { showMsg(msgEl,friendlyError(e.code)||e.message,'err'); }
+  finally { setLoading('settings-save-btn',false); }
+};
+document.getElementById('settings-modal').addEventListener('click', function(e){if(e.target===this)closeSettings();});
+
+// ── BACKGROUND ────────────────────────────────────────────────────────
+function applyBackground() {
+  const appBg=document.getElementById('screen-app');
+  const savedImg=currentUser?localStorage.getItem('wfo_bg_img_'+currentUser.uid):null;
+  if (savedImg) {
+    appBg.style.cssText='background:url(\''+savedImg+'\') center/cover fixed !important';
+  } else {
+    const themeId=userProfile.bgTheme||'default';
+    const theme=BG_THEMES.find(t=>t.id===themeId)||BG_THEMES[0];
+    appBg.style.cssText='background:'+theme.style+' !important';
+  }
+}
 </script>
 </body>
 </html>
